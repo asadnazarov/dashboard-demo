@@ -21,6 +21,7 @@ const MANAGER_MAP: Record<string, string> = {
   "1625": "Muxlisa",
   "1621": "Rais",
   "1619": "Jamshid",
+  "Shamsiddin": "Rais", // ← добавлено
 };
 
 function resolveManager(raw: string): string {
@@ -196,7 +197,6 @@ function InfoCard({ icon, title, color, children }: {
   );
 }
 
-// ── Back button component ──────────────────────────────────
 function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <button
@@ -241,7 +241,6 @@ export function SotuvAnalizi() {
             status:      (row[3]  ?? "").trim(),
             date:        (row[4]  ?? "").trim(),
             transcript:  (row[5]  ?? "").trim(),
-            // clientPhone: row[7] — номер клиента из колонки H
             clientPhone: (row[7]  ?? "").trim(),
             score:       parseInt(row[9]  ?? "0") || 0,
             managerPct:  (row[10] ?? "").trim(),
@@ -262,7 +261,7 @@ export function SotuvAnalizi() {
         const all2: string[][] = data2.values ?? [];
         const sales: { name: string; date: Date }[] = [];
         all2.slice(1).forEach((row) => {
-          const hodim   = (row[15] ?? "").trim();
+          const hodim   = resolveManager(row[15] ?? ""); // ← изменено
           const dateRaw = (row[5]  ?? "").trim();
           if (!hodim || hodim === "y") return;
           if (!dateRaw || dateRaw.toLowerCase().includes("avto")) return;
@@ -320,16 +319,11 @@ export function SotuvAnalizi() {
 
   const filtered = filterByPeriod(rows, period);
 
-  // ══════════════════════════════════════════════════════
-  // VIEW: CALL DETAIL
-  // ══════════════════════════════════════════════════════
   if (view === "detail" && selCall) {
     const c = selCall;
-    // Показываем номер телефона если есть, иначе callId
     const displayPhone = c.clientPhone || `#${c.callId}`;
     return (
       <div>
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5 flex-wrap">
           <button onClick={backToManagers} className="hover:text-foreground transition">Barcha menejerlar</button>
           <ChevronRight className="h-3.5 w-3.5 shrink-0" />
@@ -342,7 +336,6 @@ export function SotuvAnalizi() {
 
         <Header title={displayPhone} subtitle={formatDate(c.date)} />
 
-        {/* Stats row — с заголовками */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className={cn("rounded-2xl border p-4 text-center", scoreBg(c.score))}>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Umumiy ball</div>
@@ -414,9 +407,6 @@ export function SotuvAnalizi() {
     );
   }
 
-  // ══════════════════════════════════════════════════════
-  // VIEW: MANAGER CALLS — таблица с заголовками
-  // ══════════════════════════════════════════════════════
   if (view === "calls" && selMgr) {
     const mgrCalls = filterByPeriod(
       rows.filter((r) => r.managerName === selMgr),
@@ -438,7 +428,6 @@ export function SotuvAnalizi() {
         <Header title={selMgr} subtitle={`${mgrCalls.length} ta zvonok tahlil qilindi`} />
         <PeriodTabs />
 
-        {/* Summary stats */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           <div className="rounded-2xl border border-border bg-card p-4 text-center">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Zvonoklar</div>
@@ -466,7 +455,6 @@ export function SotuvAnalizi() {
               <h3 className="font-semibold">Zvonoklar</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Batafsil ko'rish uchun qatorga bosing</p>
             </div>
-            {/* Заголовки таблицы */}
             <div className="hidden sm:grid grid-cols-[1fr_120px_110px_90px_36px] gap-4 px-5 py-2.5 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               <div>Telefon / Sana</div>
               <div>Lid sifati</div>
@@ -483,7 +471,6 @@ export function SotuvAnalizi() {
                     onClick={() => openCall(c)}
                     className="w-full text-left px-5 py-4 hover:bg-secondary/60 transition grid grid-cols-[1fr_120px_110px_90px_36px] gap-4 items-center"
                   >
-                    {/* Телефон + дата */}
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                         <Phone className="h-4 w-4 text-muted-foreground" />
@@ -496,7 +483,6 @@ export function SotuvAnalizi() {
                         </div>
                       </div>
                     </div>
-                    {/* Lid sifati */}
                     <div>
                       {c.lidSifati ? (
                         <span className={cn("text-xs px-2.5 py-1 rounded-full border font-semibold", lidColor(c.lidSifati))}>
@@ -506,7 +492,6 @@ export function SotuvAnalizi() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </div>
-                    {/* Ehtiyoj */}
                     <div>
                       {c.ehtiyoj ? (
                         <span className="text-xs px-2.5 py-1 rounded-full border border-border bg-secondary text-muted-foreground font-medium">
@@ -516,7 +501,6 @@ export function SotuvAnalizi() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </div>
-                    {/* Ball */}
                     <div className="text-right">
                       <div className={cn("text-xl font-bold", scoreColor(c.score))}>{c.score || "—"}</div>
                       <div className="text-xs text-muted-foreground">ball</div>
@@ -532,9 +516,6 @@ export function SotuvAnalizi() {
     );
   }
 
-  // ══════════════════════════════════════════════════════
-  // VIEW: MANAGERS LIST — таблица с заголовками
-  // ══════════════════════════════════════════════════════
   const byManager: Record<string, CallRow[]> = {};
   filtered.forEach((r) => {
     if (!byManager[r.managerName]) byManager[r.managerName] = [];
@@ -563,7 +544,6 @@ export function SotuvAnalizi() {
             <h3 className="font-semibold">Menejerlar</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Batafsil ko'rish uchun qatorga bosing</p>
           </div>
-          {/* Заголовки таблицы */}
           <div className="hidden sm:grid grid-cols-[1fr_100px_120px_120px_36px] gap-4 px-5 py-2.5 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <div>Menejer</div>
             <div className="text-center">Zvonoklar</div>
@@ -578,7 +558,6 @@ export function SotuvAnalizi() {
                 onClick={() => openManager(m.name)}
                 className="w-full text-left px-5 py-4 hover:bg-secondary/60 transition grid grid-cols-[1fr_100px_120px_120px_36px] gap-4 items-center"
               >
-                {/* Мэнэджер */}
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
                     "h-10 w-10 rounded-full bg-gradient-to-br flex items-center justify-center font-bold text-white text-sm shrink-0",
@@ -590,14 +569,10 @@ export function SotuvAnalizi() {
                     <div className="font-semibold truncate">{m.name}</div>
                   </div>
                 </div>
-
-                {/* Звонки */}
                 <div className="text-center">
                   <div className="text-lg font-bold">{m.calls.length}</div>
                   <div className="text-xs text-muted-foreground">zvonok</div>
                 </div>
-
-                {/* Продажи */}
                 <div className="text-center">
                   <div className="flex items-center gap-1 justify-center text-blue-500">
                     <ShoppingBag className="h-3.5 w-3.5" />
@@ -605,13 +580,10 @@ export function SotuvAnalizi() {
                   </div>
                   <div className="text-xs text-muted-foreground">sotuv</div>
                 </div>
-
-                {/* Средний балл */}
                 <div className="text-right">
                   <div className={cn("text-lg font-bold", scoreColor(m.avgScore))}>{m.avgScore || "—"}</div>
                   <div className="text-xs text-muted-foreground">ball</div>
                 </div>
-
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
             ))}
