@@ -21,7 +21,7 @@ const MANAGER_MAP: Record<string, string> = {
   "1625": "Muxlisa",
   "1621": "Rais",
   "1619": "Jamshid",
-  "Shamsiddin": "Rais", // ← добавлено
+  "Shamsiddin": "Rais",
 };
 
 function resolveManager(raw: string): string {
@@ -261,7 +261,7 @@ export function SotuvAnalizi() {
         const all2: string[][] = data2.values ?? [];
         const sales: { name: string; date: Date }[] = [];
         all2.slice(1).forEach((row) => {
-          const hodim   = resolveManager(row[15] ?? ""); // ← изменено
+          const hodim   = resolveManager(row[15] ?? "");
           const dateRaw = (row[5]  ?? "").trim();
           if (!hodim || hodim === "y") return;
           if (!dateRaw || dateRaw.toLowerCase().includes("avto")) return;
@@ -569,10 +569,12 @@ export function SotuvAnalizi() {
                     <div className="font-semibold truncate">{m.name}</div>
                   </div>
                 </div>
+
                 <div className="text-center">
                   <div className="text-lg font-bold">{m.calls.length}</div>
                   <div className="text-xs text-muted-foreground">zvonok</div>
                 </div>
+
                 <div className="text-center">
                   <div className="flex items-center gap-1 justify-center text-blue-500">
                     <ShoppingBag className="h-3.5 w-3.5" />
@@ -580,10 +582,12 @@ export function SotuvAnalizi() {
                   </div>
                   <div className="text-xs text-muted-foreground">sotuv</div>
                 </div>
+
                 <div className="text-right">
                   <div className={cn("text-lg font-bold", scoreColor(m.avgScore))}>{m.avgScore || "—"}</div>
                   <div className="text-xs text-muted-foreground">ball</div>
                 </div>
+
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
             ))}
