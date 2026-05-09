@@ -7,7 +7,7 @@ import { Hodimlar } from "@/components/sections/Hodimlar";
 import { Login } from "@/components/Login";
 import logo from "@/assets/logo.webp";
 import { AssistantChat } from "@/components/dashboard/AssistantChat";
-import { Phone, Wallet, GraduationCap, Users } from "lucide-react";
+import { Phone, Wallet, GraduationCap, Users, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Role = "boshliq" | "admin" | "ustoz";
@@ -22,6 +22,11 @@ const Index = () => {
     setRole(savedRole);
     setLoading(false);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("role");
+    setRole(null);
+  };
 
   if (loading) {
     return (
@@ -54,7 +59,7 @@ const Index = () => {
 
     return (
       <div className="min-h-screen flex bg-background">
-        <Sidebar active={active} onChange={setActive} role={role} />
+        <Sidebar active={active} onChange={setActive} />
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
             <img src={logo} alt="AVTOTEST7" className="h-7" />
@@ -93,21 +98,23 @@ const Index = () => {
   // Admin dashboard (pusta)
   if (role === "admin") {
     return (
-      <div className="min-h-screen flex bg-background">
-        <Sidebar active={active} onChange={setActive} role={role} />
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
-          </div>
-          <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-muted-foreground">
-                <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
-                <p>Tez orada...</p>
-              </div>
-            </div>
-          </main>
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="h-14 border-b border-border bg-card flex items-center justify-between px-5">
+          <img src={logo} alt="AVTOTEST7" className="h-7" />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 transition"
+          >
+            <LogOut className="h-4 w-4" />
+            Chiqish
+          </button>
         </div>
+        <main className="flex-1 flex items-center justify-center px-5">
+          <div className="text-center text-muted-foreground">
+            <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+            <p className="text-lg">Tez orada...</p>
+          </div>
+        </main>
       </div>
     );
   }
@@ -115,21 +122,23 @@ const Index = () => {
   // Ustoz dashboard (pusta)
   if (role === "ustoz") {
     return (
-      <div className="min-h-screen flex bg-background">
-        <Sidebar active={active} onChange={setActive} role={role} />
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
-          </div>
-          <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-muted-foreground">
-                <h1 className="text-2xl font-bold mb-2">Ustoz Panel</h1>
-                <p>Tez orada...</p>
-              </div>
-            </div>
-          </main>
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="h-14 border-b border-border bg-card flex items-center justify-between px-5">
+          <img src={logo} alt="AVTOTEST7" className="h-7" />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 transition"
+          >
+            <LogOut className="h-4 w-4" />
+            Chiqish
+          </button>
         </div>
+        <main className="flex-1 flex items-center justify-center px-5">
+          <div className="text-center text-muted-foreground">
+            <h1 className="text-3xl font-bold mb-2">Ustoz Panel</h1>
+            <p className="text-lg">Tez orada...</p>
+          </div>
+        </main>
       </div>
     );
   }
