@@ -5,6 +5,7 @@ import { Moliya } from "@/components/sections/Moliya";
 import { Oquvchilar } from "@/components/sections/Oquvchilar";
 import { Hodimlar } from "@/components/sections/Hodimlar";
 import { Baza } from "@/components/sections/Baza";
+import { OnlineDostup } from "@/components/sections/OnlineDostup";
 import { Login } from "@/components/Login";
 import logo from "@/assets/logo.webp";
 import { AssistantChat } from "@/components/dashboard/AssistantChat";
@@ -15,10 +16,10 @@ type Role = "boshliq" | "admin" | "ustoz";
 type AdminSection = "baza" | "online";
 
 const Index = () => {
-  const [role, setRole]     = useState<Role | null>(null);
-  const [active, setActive] = useState<SectionId>("sotuv");
+  const [role, setRole]                 = useState<Role | null>(null);
+  const [active, setActive]             = useState<SectionId>("sotuv");
   const [adminSection, setAdminSection] = useState<AdminSection>("baza");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
     const savedRole = localStorage.getItem("role") as Role | null;
@@ -42,10 +43,10 @@ const Index = () => {
   // ── BOSHLIQ ──────────────────────────────────────────
   if (role === "boshliq") {
     const mobileItems: { id: SectionId; icon: typeof Phone; label: string }[] = [
-      { id: "sotuv",      icon: Phone,         label: "Sotuv"    },
-      { id: "moliya",     icon: Wallet,         label: "Moliya"   },
-      { id: "oquvchilar", icon: GraduationCap,  label: "O'quvchi" },
-      { id: "hodimlar",   icon: Users,          label: "Hodim"    },
+      { id: "sotuv",      icon: Phone,        label: "Sotuv"    },
+      { id: "moliya",     icon: Wallet,        label: "Moliya"   },
+      { id: "oquvchilar", icon: GraduationCap, label: "O'quvchi" },
+      { id: "hodimlar",   icon: Users,         label: "Hodim"    },
     ];
     const contextLabel: Record<SectionId, string> = {
       sotuv:      "Sotuv Analizi",
@@ -100,7 +101,9 @@ const Index = () => {
               onClick={() => setAdminSection("baza")}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left",
-                adminSection === "baza" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                adminSection === "baza"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >
               <Database className="h-4 w-4 shrink-0" />
@@ -113,13 +116,15 @@ const Index = () => {
               onClick={() => setAdminSection("online")}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left",
-                adminSection === "online" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                adminSection === "online"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >
               <Wifi className="h-4 w-4 shrink-0" />
               <div>
                 <div>Online Dostup</div>
-                <div className="text-xs opacity-70">Tez orada...</div>
+                <div className="text-xs opacity-70">Ruxsat berilgan raqamlar</div>
               </div>
             </button>
           </nav>
@@ -145,14 +150,7 @@ const Index = () => {
 
           <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
             {adminSection === "baza"   && <Baza />}
-            {adminSection === "online" && (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center text-muted-foreground">
-                  <h1 className="text-2xl font-bold mb-2 text-foreground">Online Dostup</h1>
-                  <p>Tez orada...</p>
-                </div>
-              </div>
-            )}
+            {adminSection === "online" && <OnlineDostup />}
           </main>
 
           {/* Mobile bottom nav */}
