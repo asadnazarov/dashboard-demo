@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const SHEET_ID  = "1StqPMbH2IWX_722F9MVp92gKOGitlTuUBVYrtZ7GUvI";
 const API_KEY   = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const RANGE     = "%D0%9B%D0%B8%D1%81%D1%821!A:P";
+const RANGE     = "%D0%9B%D0%B8%D1%81%D1%821!A:Q";
 const WEBHOOK   = "https://n8n.srv1215497.hstgr.cloud/webhook/admin";
 
 const DEFAULT_HODIMLAR = [
@@ -176,7 +176,7 @@ export function Baza() {
             nazariy:    r[12] ?? "",
             amaliyS:    r[13] ?? "",
             amaliy:     r[14] ?? "",
-            hodim:      r[15] ?? "",
+            hodim:      r[16] ?? "",
           }));
         setClients(parsed);
       })
