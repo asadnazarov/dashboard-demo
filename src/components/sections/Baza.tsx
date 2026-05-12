@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
 import {
   Loader2, AlertCircle, Plus, X,
-  Search, Database
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,12 @@ interface Client {
 
 function formatSumma(val: string): string {
   return val.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+function parseSummaForEdit(raw: string): string {
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits || digits === "0" || digits === "000") return "";
+  return formatSumma(digits);
 }
 
 function parseClientDate(raw: string): Date | null {
@@ -116,7 +122,6 @@ export function Baza() {
     return saved ? JSON.parse(saved) : DEFAULT_HODIMLAR;
   });
 
-  // Форма добавления
   const [showAdd,      setShowAdd]      = useState(false);
   const [addLoading,   setAddLoading]   = useState(false);
   const [addResult,    setAddResult]    = useState<string | null>(null);
@@ -130,12 +135,11 @@ export function Baza() {
   const [addTolandi,   setAddTolandi]   = useState("");
   const [addQarzi,     setAddQarzi]     = useState("");
   const [addHodim,     setAddHodim]     = useState("Rayhon");
+  const [addOnline,    setAddOnline]    = useState("Offline");
 
-  // Управление hodimlar
   const [showHodimMgr, setShowHodimMgr] = useState(false);
   const [newHodimName, setNewHodimName] = useState("");
 
-  // Форма редактирования
   const [editClient,     setEditClient]     = useState<Client | null>(null);
   const [editLoading,    setEditLoading]    = useState(false);
   const [editResult,     setEditResult]     = useState<string | null>(null);
@@ -194,10 +198,10 @@ export function Baza() {
     setEditDarsKuni(toInputDate(c.darsKuni));
     setEditTolovKuni(toInputDate(c.tolovKuni));
     setEditDarsVaqti(c.darsVaqti || "10:00");
-    setEditTolov(c.tolov.replace(/[^\d\s]/g, "").trim());
-    setEditTolandi(c.tolandi.replace(/[^\d\s]/g, "").trim());
-    setEditQarzi(c.qarzi.replace(/[^\d\s]/g, "").trim());
-    setEditHodim(c.hodim || "Rayhon");
+    setEditTolov(parseSummaForEdit(c.tolov));
+    setEditTolandi(parseSummaForEdit(c.tolandi));
+    setEditQarzi(parseSummaForEdit(c.qarzi));
+    setEditHodim(c.hodim || hodimlar[0]);
     setEditTolovBekor(c.tolovBekor?.toLowerCase() === "bekor");
     setEditResult(null);
   }
@@ -221,6 +225,7 @@ export function Baza() {
           tolandi:    addTolandi.replace(/\s/g, ""),
           qarzi:      addQarzi.replace(/\s/g, ""),
           hodim:      addHodim,
+          online:     addOnline,
         }),
       });
       setAddResult("✅ Muvaffaqiyatli saqlandi!");
@@ -235,19 +240,6 @@ export function Baza() {
   async function submitEdit() {
     if (!editClient) return;
     setEditLoading(true); setEditResult(null);
-    const changes: Record<string, { old: string; new: string }> = {};
-    if (editIsm !== editClient.ism) changes.ism = { old: editClient.ism, new: editIsm };
-    if (editTelefon !== editClient.telefon) changes.telefon = { old: editClient.telefon, new: editTelefon };
-    if (editFilial !== editClient.filial) changes.filial = { old: editClient.filial, new: editFilial };
-    if (toSheetDate(editDarsKuni) !== editClient.darsKuni) changes.dars_kuni = { old: editClient.darsKuni, new: toSheetDate(editDarsKuni) };
-    if (toSheetDate(editTolovKuni) !== editClient.tolovKuni) changes.tolov_kuni = { old: editClient.tolovKuni, new: toSheetDate(editTolovKuni) };
-    if (editDarsVaqti !== editClient.darsVaqti) changes.dars_vaqti = { old: editClient.darsVaqti, new: editDarsVaqti };
-    if (editTolov.replace(/\s/g,"") !== editClient.tolov.replace(/[^\d]/g,"")) changes.tolov = { old: editClient.tolov, new: editTolov.replace(/\s/g,"") };
-    if (editTolandi.replace(/\s/g,"") !== editClient.tolandi.replace(/[^\d]/g,"")) changes.tolandi = { old: editClient.tolandi, new: editTolandi.replace(/\s/g,"") };
-    if (editQarzi.replace(/\s/g,"") !== editClient.qarzi.replace(/[^\d]/g,"")) changes.qarzi = { old: editClient.qarzi, new: editQarzi.replace(/\s/g,"") };
-    if (editHodim !== editClient.hodim) changes.hodim = { old: editClient.hodim, new: editHodim };
-    const newBekor = editTolovBekor ? "Bekor" : "";
-    if (newBekor !== editClient.tolovBekor) changes.tolov_bekor = { old: editClient.tolovBekor, new: newBekor };
     try {
       await fetch(WEBHOOK, {
         method: "POST",
@@ -257,7 +249,19 @@ export function Baza() {
           ism:     editClient.ism,
           telefon: editClient.telefon,
           row:     editClient.rowIndex,
-          changes,
+          changes: {
+            ism:         { old: editClient.ism,        new: editIsm },
+            telefon:     { old: editClient.telefon,    new: editTelefon },
+            filial:      { old: editClient.filial,     new: editFilial },
+            dars_kuni:   { old: editClient.darsKuni,   new: toSheetDate(editDarsKuni) },
+            tolov_kuni:  { old: editClient.tolovKuni,  new: toSheetDate(editTolovKuni) },
+            dars_vaqti:  { old: editClient.darsVaqti,  new: editDarsVaqti },
+            tolov:       { old: editClient.tolov,      new: editTolov.replace(/\s/g,"") },
+            tolandi:     { old: editClient.tolandi,    new: editTolandi.replace(/\s/g,"") },
+            qarzi:       { old: editClient.qarzi,      new: editQarzi.replace(/\s/g,"") },
+            hodim:       { old: editClient.hodim,      new: editHodim },
+            tolov_bekor: { old: editClient.tolovBekor, new: editTolovBekor ? "Bekor" : "" },
+          },
         }),
       });
       setEditResult("✅ Saqlandi!");
@@ -312,7 +316,6 @@ export function Baza() {
     <div>
       <Header title="Baza" subtitle="Mijozlar bazasi" />
 
-      {/* Период + кнопки */}
       <div className="flex flex-wrap gap-2 mb-6">
         {PERIODS.map(p => (
           <button key={p.id} onClick={() => setPeriod(p.id)}
@@ -331,7 +334,6 @@ export function Baza() {
         </div>
       </div>
 
-      {/* Форма добавления */}
       {showAdd && (
         <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -385,6 +387,10 @@ export function Baza() {
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
             </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Online / Offline</label>
+              <Toggle left="Offline" right="Online" value={addOnline} onChange={setAddOnline} />
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block flex items-center justify-between">
                 <span>Hodim</span>
                 <button onClick={() => setShowHodimMgr(!showHodimMgr)}
@@ -399,7 +405,6 @@ export function Baza() {
             </div>
           </div>
 
-          {/* Управление hodimlar */}
           {showHodimMgr && (
             <div className="bg-secondary rounded-xl p-4 mb-4">
               <h4 className="text-sm font-semibold mb-3">Hodimlarni boshqarish</h4>
@@ -438,7 +443,6 @@ export function Baza() {
         </div>
       )}
 
-      {/* Поиск + фильтр */}
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -457,7 +461,6 @@ export function Baza() {
         </div>
       </div>
 
-      {/* Таблица */}
       <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-semibold">Mijozlar</h3>
@@ -520,7 +523,6 @@ export function Baza() {
         </div>
       </div>
 
-      {/* Модалка редактирования */}
       {editClient && (
         <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card rounded-2xl border border-border shadow-elevated w-full max-w-2xl max-h-[90vh] overflow-y-auto">
