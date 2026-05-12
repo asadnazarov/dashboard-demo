@@ -15,12 +15,14 @@ import { cn } from "@/lib/utils";
 
 type Role = "boshliq" | "admin" | "ustoz";
 type AdminSection = "baza" | "online";
+type UstozSection = "davomat" | "online";
 
 const Index = () => {
-  const [role, setRole]                 = useState<Role | null>(null);
-  const [active, setActive]             = useState<SectionId>("sotuv");
-  const [adminSection, setAdminSection] = useState<AdminSection>("baza");
-  const [loading, setLoading]           = useState(true);
+  const [role, setRole]                   = useState<Role | null>(null);
+  const [active, setActive]               = useState<SectionId>("sotuv");
+  const [adminSection, setAdminSection]   = useState<AdminSection>("baza");
+  const [ustozSection, setUstozSection]   = useState<UstozSection>("davomat");
+  const [loading, setLoading]             = useState(true);
 
   useEffect(() => {
     const savedRole = localStorage.getItem("role") as Role | null;
@@ -61,6 +63,10 @@ const Index = () => {
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
             <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <button onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
           <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
             {active === "sotuv"      && <SotuvAnalizi />}
@@ -119,10 +125,12 @@ const Index = () => {
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
+          <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-card">
             <img src={logo} alt="AVTOTEST7" className="h-7" />
-            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground">
+            <button onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground hover:bg-secondary/80 transition">
               <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Chiqish</span>
             </button>
           </div>
           <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
@@ -149,18 +157,59 @@ const Index = () => {
   // ── USTOZ ─────────────────────────────────────────────
   if (role === "ustoz") {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="h-14 border-b border-border bg-card flex items-center justify-between px-5">
-          <img src={logo} alt="AVTOTEST7" className="h-7" />
-          <button onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 transition text-foreground">
-            <LogOut className="h-4 w-4" />
-            Chiqish
-          </button>
+      <div className="min-h-screen flex bg-background">
+        <div className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
+          <div className="px-5 py-5 border-b border-border">
+            <img src={logo} alt="AVTOTEST7" className="h-7" />
+          </div>
+          <nav className="flex-1 px-3 py-4 space-y-1">
+            <button onClick={() => setUstozSection("davomat")}
+              className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left",
+                ustozSection === "davomat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
+              <GraduationCap className="h-4 w-4 shrink-0" />
+              <div><div>Davomat</div><div className="text-xs opacity-70">O'quvchilar davomati</div></div>
+            </button>
+            <button onClick={() => setUstozSection("online")}
+              className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left",
+                ustozSection === "online" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
+              <Wifi className="h-4 w-4 shrink-0" />
+              <div><div>Online Dostup</div><div className="text-xs opacity-70">Ruxsat berilgan raqamlar</div></div>
+            </button>
+          </nav>
+          <div className="px-3 py-4 border-t border-border">
+            <button onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition">
+              <LogOut className="h-4 w-4" />Chiqish
+            </button>
+          </div>
         </div>
-        <main className="flex-1 px-5 md:px-8 py-8 max-w-[1400px] w-full mx-auto">
-          <Ustoz />
-        </main>
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-card">
+            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <button onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground hover:bg-secondary/80 transition">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Chiqish</span>
+            </button>
+          </div>
+          <main className="flex-1 px-5 md:px-8 py-8 pb-24 lg:pb-12 max-w-[1400px] w-full mx-auto">
+            {ustozSection === "davomat" && <Ustoz />}
+            {ustozSection === "online"  && <OnlineDostup />}
+          </main>
+          <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border flex">
+            <button onClick={() => setUstozSection("davomat")}
+              className={cn("flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
+                ustozSection === "davomat" ? "text-primary" : "text-muted-foreground")}>
+              <GraduationCap className="h-5 w-5" />Davomat
+            </button>
+            <button onClick={() => setUstozSection("online")}
+              className={cn("flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
+                ustozSection === "online" ? "text-primary" : "text-muted-foreground")}>
+              <Wifi className="h-5 w-5" />Online
+            </button>
+          </nav>
+        </div>
       </div>
     );
   }
