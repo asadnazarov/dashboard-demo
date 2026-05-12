@@ -1,28 +1,28 @@
-import { Phone, Wallet, GraduationCap, Users, Search, Settings } from "lucide-react";
+import { Phone, Wallet, GraduationCap, Users, Search, Settings, LogOut } from "lucide-react";
 import logo from "@/assets/logo.webp";
 import { cn } from "@/lib/utils";
 
 export type SectionId = "sotuv" | "moliya" | "oquvchilar" | "hodimlar";
 
 const items: { id: SectionId; label: string; icon: typeof Phone; sub: string }[] = [
-  { id: "sotuv", label: "Sotuv Analizi", icon: Phone, sub: "Qo'ng'iroqlar va sotuvlar" },
-  { id: "moliya", label: "Moliya", icon: Wallet, sub: "Daromad va xarajat" },
-  { id: "oquvchilar", label: "O'quvchilar", icon: GraduationCap, sub: "Imtihon va davomat" },
-  { id: "hodimlar", label: "Hodimlar", icon: Users, sub: "Davomat va samaradorlik" },
+  { id: "sotuv",      label: "Sotuv Analizi", icon: Phone,        sub: "Qo'ng'iroqlar va sotuvlar" },
+  { id: "moliya",     label: "Moliya",         icon: Wallet,        sub: "Daromad va xarajat" },
+  { id: "oquvchilar", label: "O'quvchilar",    icon: GraduationCap, sub: "Imtihon va davomat" },
+  { id: "hodimlar",   label: "Hodimlar",       icon: Users,         sub: "Davomat va samaradorlik" },
 ];
 
 interface Props {
   active: SectionId;
   onChange: (id: SectionId) => void;
+  onLogout: () => void;
 }
 
-export function Sidebar({ active, onChange }: Props) {
+export function Sidebar({ active, onChange, onLogout }: Props) {
   return (
     <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-sidebar">
       <div className="px-6 pt-6 pb-8 border-b border-border">
         <img src={logo} alt="AVTOTEST7 logo" className="h-9 w-auto" />
       </div>
-
       <div className="px-4 pt-5">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -32,7 +32,6 @@ export function Sidebar({ active, onChange }: Props) {
           />
         </div>
       </div>
-
       <nav className="flex-1 px-3 pt-6 space-y-1">
         <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Bo'limlar</p>
         {items.map((item) => {
@@ -60,7 +59,6 @@ export function Sidebar({ active, onChange }: Props) {
           );
         })}
       </nav>
-
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-3 px-2">
           <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
@@ -72,6 +70,12 @@ export function Sidebar({ active, onChange }: Props) {
           </div>
           <button className="h-8 w-8 rounded-md hover:bg-secondary flex items-center justify-center text-muted-foreground">
             <Settings className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onLogout}
+            className="h-8 w-8 rounded-md hover:bg-red-500/10 flex items-center justify-center text-muted-foreground hover:text-red-500 transition"
+            title="Chiqish">
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
