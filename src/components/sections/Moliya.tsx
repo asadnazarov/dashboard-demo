@@ -74,7 +74,6 @@ export function Moliya() {
   const [rejadagi, setRejadagi] = useState<RejadagiRow[]>([]);
   const [rejadagiLoading, setRejadagiLoading] = useState(true);
 
-  // Форма kirim/chiqim
   const [showForm, setShowForm] = useState(false);
   const [formSana, setFormSana] = useState(todayInputFormat());
   const [formIsm, setFormIsm] = useState("");
@@ -88,7 +87,6 @@ export function Moliya() {
   const [formLoading, setFormLoading] = useState(false);
   const [formResult, setFormResult] = useState<string | null>(null);
 
-  // Форма rejadagi
   const [showRejadagiForm, setShowRejadagiForm] = useState(false);
   const [rejNomi, setRejNomi] = useState("");
   const [rejSana, setRejSana] = useState(todayInputFormat());
@@ -97,7 +95,6 @@ export function Moliya() {
   const [rejLoading, setRejLoading] = useState(false);
   const [rejResult, setRejResult] = useState<string | null>(null);
 
-  // Форма online (website)
   const [showOnlineForm, setShowOnlineForm] = useState(false);
   const [onlineIsm, setOnlineIsm] = useState("");
   const [onlineTelefon, setOnlineTelefon] = useState("");
@@ -223,17 +220,17 @@ export function Moliya() {
     return true;
   });
 
-  const totalRevenue = periodFiltered.filter(r => r.summa > 0).reduce((s, r) => s + r.summa, 0);
+  const totalRevenue  = periodFiltered.filter(r => r.summa > 0).reduce((s, r) => s + r.summa, 0);
   const totalExpenses = periodFiltered.filter(r => r.summa < 0).reduce((s, r) => s + Math.abs(r.summa), 0);
-  const totalProfit = totalRevenue - totalExpenses;
-  const margin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0.0";
+  const totalProfit   = totalRevenue - totalExpenses;
+  const margin        = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0.0";
 
-  const novzaRevenue = periodFiltered.filter(r => r.summa > 0 && r.filial === "Novza").reduce((s, r) => s + r.summa, 0);
-  const novzaExpenses = periodFiltered.filter(r => r.summa < 0 && r.filial === "Novza").reduce((s, r) => s + Math.abs(r.summa), 0);
-  const novzaProfit = novzaRevenue - novzaExpenses;
-  const yunusobodRevenue = periodFiltered.filter(r => r.summa > 0 && r.filial === "Yunusobod").reduce((s, r) => s + r.summa, 0);
+  const novzaRevenue    = periodFiltered.filter(r => r.summa > 0 && r.filial === "Novza").reduce((s, r) => s + r.summa, 0);
+  const novzaExpenses   = periodFiltered.filter(r => r.summa < 0 && r.filial === "Novza").reduce((s, r) => s + Math.abs(r.summa), 0);
+  const novzaProfit     = novzaRevenue - novzaExpenses;
+  const yunusobodRevenue  = periodFiltered.filter(r => r.summa > 0 && r.filial === "Yunusobod").reduce((s, r) => s + r.summa, 0);
   const yunusobodExpenses = periodFiltered.filter(r => r.summa < 0 && r.filial === "Yunusobod").reduce((s, r) => s + Math.abs(r.summa), 0);
-  const yunusobodProfit = yunusobodRevenue - yunusobodExpenses;
+  const yunusobodProfit   = yunusobodRevenue - yunusobodExpenses;
 
   const tableFiltered = periodFiltered.filter(r => {
     if (filterKirim === "Kirim" && r.summa < 0) return false;
@@ -267,16 +264,15 @@ export function Moliya() {
   ];
 
   const modalData = modalFilial ? {
-    revenue: modalFilial === "Novza" ? novzaRevenue : yunusobodRevenue,
+    revenue:  modalFilial === "Novza" ? novzaRevenue  : yunusobodRevenue,
     expenses: modalFilial === "Novza" ? novzaExpenses : yunusobodExpenses,
-    profit: modalFilial === "Novza" ? novzaProfit : yunusobodProfit,
+    profit:   modalFilial === "Novza" ? novzaProfit   : yunusobodProfit,
   } : null;
 
   return (
     <div>
       <Header title="Moliya" subtitle="Daromad, xarajat va foyda tahlili" />
 
-      {/* Период + кнопки */}
       <div className="flex flex-wrap gap-2 mb-6">
         {periods.map(p => (
           <button key={p.id} onClick={() => setPeriod(p.id)}
@@ -306,14 +302,13 @@ export function Moliya() {
         </div>
       </div>
 
-      {/* Форма online to'lov */}
       {showOnlineForm && (
         <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2"><Globe className="h-4 w-4" />Online to'lov qo'shish</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div><label className="text-xs text-muted-foreground mb-1 block">Ism Familya</label><input type="text" value={onlineIsm} onChange={e => setOnlineIsm(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Telefon raqami</label><input type="tel" placeholder="+998 90 000 00 00" value={onlineTelefon} onChange={e => setOnlineTelefon(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
-            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={onlineSumma} onChange={e => setOnlineSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm num" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={onlineSumma} onChange={e => setOnlineSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Sana</label><input type="date" value={onlineSana} onChange={e => setOnlineSana(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
           </div>
           <button onClick={submitOnline} disabled={onlineLoading} className="px-6 py-2 bg-secondary text-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition disabled:opacity-50 inline-flex items-center gap-2">
@@ -323,7 +318,6 @@ export function Moliya() {
         </div>
       )}
 
-      {/* Форма kirim/chiqim */}
       {showForm && (
         <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2"><Plus className="h-4 w-4" />Yangi kirim / chiqim</h3>
@@ -331,7 +325,7 @@ export function Moliya() {
             <div><label className="text-xs text-muted-foreground mb-1 block">Sana</label><input type="date" value={formSana} onChange={e => setFormSana(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Ism Familya</label><input type="text" value={formIsm} onChange={e => setFormIsm(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Telefon raqami</label><input type="tel" placeholder="+998 90 000 00 00" value={formTelefon} onChange={e => setFormTelefon(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
-            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={formSumma} onChange={e => setFormSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm num" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={formSumma} onChange={e => setFormSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Filial</label><Toggle left="Novza" right="Yunusobod" value={formFilial} onChange={setFormFilial} /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Turi</label><Toggle left="Naqd" right="Karta" value={formTuri} onChange={setFormTuri} /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Online / Offline</label><Toggle left="Offline" right="Online" value={formOnline} onChange={setFormOnline} /></div>
@@ -345,14 +339,13 @@ export function Moliya() {
         </div>
       )}
 
-      {/* Форма rejadagi xarajat */}
       {showRejadagiForm && (
         <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2"><CalendarClock className="h-4 w-4" />Rejadagi xarajat qo'shish</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div><label className="text-xs text-muted-foreground mb-1 block">Xarajat nomi</label><input type="text" placeholder="Ijara, Maosh..." value={rejNomi} onChange={e => setRejNomi(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Sana / Oy</label><input type="date" value={rejSana} onChange={e => setRejSana(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
-            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={rejSumma} onChange={e => setRejSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm num" /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label><input type="text" value={rejSumma} onChange={e => setRejSumma(formatSummaInput(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
             <div><label className="text-xs text-muted-foreground mb-1 block">Izoh</label><input type="text" value={rejIzoh} onChange={e => setRejIzoh(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" /></div>
           </div>
           <button onClick={submitRejadagi} disabled={rejLoading} className="px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2">
@@ -362,29 +355,54 @@ export function Moliya() {
         </div>
       )}
 
-      {/* Строка 1 — Marja с цветом */}
-      <div className="rounded-2xl p-5 shadow-soft border border-purple-100 bg-gradient-to-br from-purple-50 to-white mb-4">
+      {/* Marja карточка */}
+      <div className={cn("rounded-2xl p-5 shadow-soft border mb-4",
+        totalProfit < 0
+          ? "border-red-200 bg-gradient-to-br from-red-50 to-white"
+          : "border-purple-100 bg-gradient-to-br from-purple-50 to-white")}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-purple-700 font-medium mb-1">Marja</p>
-            <p className="text-3xl font-bold text-purple-900 num">{margin}%</p>
-            <p className="text-xs text-purple-600 mt-1">Daromad: {fmt(totalRevenue)}  ·  Xarajat: {fmt(totalExpenses)}  ·  Sof foyda: {fmt(totalProfit)}</p>
+            <p className={cn("text-sm font-medium mb-1", totalProfit < 0 ? "text-red-700" : "text-purple-700")}>Marja</p>
+            <p className={cn("text-3xl font-bold num", totalProfit < 0 ? "text-red-600" : "text-purple-900")}>
+              {totalProfit < 0 ? "-" : ""}{margin}%
+            </p>
+            <p className={cn("text-xs mt-1", totalProfit < 0 ? "text-red-600" : "text-purple-600")}>
+              Daromad: {fmt(totalRevenue)} · Xarajat: {fmt(totalExpenses)} · Sof foyda:{" "}
+              <span className={cn("font-semibold", totalProfit < 0 ? "text-red-600" : "")}>
+                {totalProfit < 0 ? "-" : ""}{fmt(totalProfit)}
+              </span>
+            </p>
           </div>
-          <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center"><TrendingUp className="h-6 w-6 text-purple-600" /></div>
+          <div className={cn("h-12 w-12 rounded-full flex items-center justify-center",
+            totalProfit < 0 ? "bg-red-100" : "bg-purple-100")}>
+            <TrendingUp className={cn("h-6 w-6", totalProfit < 0 ? "text-red-600" : "text-purple-600")} />
+          </div>
         </div>
       </div>
 
-      {/* Строка 2 — Novza и Yunusobod */}
+      {/* Novza и Yunusobod */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-2xl p-5 shadow-soft border border-blue-100 bg-gradient-to-br from-blue-50 to-white cursor-pointer hover:border-blue-300 transition" onClick={() => setModalFilial("Novza")}>
-          <p className="text-sm text-blue-700 font-medium mb-2">Novza — Sof foyda</p>
-          <p className="text-2xl font-bold text-blue-900 num">{fmt(novzaProfit)}</p>
-          <p className="text-xs text-blue-600 mt-2">Batafsil ko'rish →</p>
+        <div className={cn("rounded-2xl p-5 shadow-soft border cursor-pointer transition",
+          novzaProfit < 0
+            ? "border-red-200 bg-gradient-to-br from-red-50 to-white hover:border-red-300"
+            : "border-blue-100 bg-gradient-to-br from-blue-50 to-white hover:border-blue-300")}
+          onClick={() => setModalFilial("Novza")}>
+          <p className={cn("text-sm font-medium mb-2", novzaProfit < 0 ? "text-red-700" : "text-blue-700")}>Novza — Sof foyda</p>
+          <p className={cn("text-2xl font-bold num", novzaProfit < 0 ? "text-red-600" : "text-blue-900")}>
+            {novzaProfit < 0 ? "-" : ""}{fmt(novzaProfit)}
+          </p>
+          <p className={cn("text-xs mt-2", novzaProfit < 0 ? "text-red-500" : "text-blue-600")}>Batafsil ko'rish →</p>
         </div>
-        <div className="rounded-2xl p-5 shadow-soft border border-blue-100 bg-gradient-to-br from-blue-50 to-white cursor-pointer hover:border-blue-300 transition" onClick={() => setModalFilial("Yunusobod")}>
-          <p className="text-sm text-blue-700 font-medium mb-2">Yunusobod — Sof foyda</p>
-          <p className="text-2xl font-bold text-blue-900 num">{fmt(yunusobodProfit)}</p>
-          <p className="text-xs text-blue-600 mt-2">Batafsil ko'rish →</p>
+        <div className={cn("rounded-2xl p-5 shadow-soft border cursor-pointer transition",
+          yunusobodProfit < 0
+            ? "border-red-200 bg-gradient-to-br from-red-50 to-white hover:border-red-300"
+            : "border-blue-100 bg-gradient-to-br from-blue-50 to-white hover:border-blue-300")}
+          onClick={() => setModalFilial("Yunusobod")}>
+          <p className={cn("text-sm font-medium mb-2", yunusobodProfit < 0 ? "text-red-700" : "text-blue-700")}>Yunusobod — Sof foyda</p>
+          <p className={cn("text-2xl font-bold num", yunusobodProfit < 0 ? "text-red-600" : "text-blue-900")}>
+            {yunusobodProfit < 0 ? "-" : ""}{fmt(yunusobodProfit)}
+          </p>
+          <p className={cn("text-xs mt-2", yunusobodProfit < 0 ? "text-red-500" : "text-blue-600")}>Batafsil ko'rish →</p>
         </div>
       </div>
 
@@ -393,7 +411,7 @@ export function Moliya() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold">Rejadagi xarajatlar</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Joriy sof foyda: <span className="font-semibold">{fmt(totalProfit)}</span></p>
+            <p className="text-xs text-muted-foreground mt-0.5">Joriy sof foyda: <span className={cn("font-semibold", totalProfit < 0 ? "text-red-500" : "")}>{totalProfit < 0 ? "-" : ""}{fmt(totalProfit)}</span></p>
           </div>
         </div>
         {rejadagiLoading ? (
@@ -434,6 +452,7 @@ export function Moliya() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Xarajatlardan keyin qoladi</span>
               <span className={cn("num font-bold text-sm", totalProfit - rejadagi.reduce((s, r) => s + r.summa, 0) >= 0 ? "text-emerald-600" : "text-red-500")}>
+                {totalProfit - rejadagi.reduce((s, r) => s + r.summa, 0) < 0 ? "-" : ""}
                 {fmt(totalProfit - rejadagi.reduce((s, r) => s + r.summa, 0))}
               </span>
             </div>
@@ -458,14 +477,20 @@ export function Moliya() {
                 <p className="text-xs text-red-700 font-medium mb-1">Jami xarajat</p>
                 <p className="text-xl font-bold text-red-900 num">{fmt(modalData.expenses)}</p>
               </div>
-              <div className="rounded-xl p-4 border border-blue-100 bg-blue-50">
-                <p className="text-xs text-blue-700 font-medium mb-1">Sof foyda</p>
-                <p className="text-xl font-bold text-blue-900 num">{fmt(modalData.profit)}</p>
+              <div className={cn("rounded-xl p-4 border", modalData.profit < 0 ? "border-red-100 bg-red-50" : "border-blue-100 bg-blue-50")}>
+                <p className={cn("text-xs font-medium mb-1", modalData.profit < 0 ? "text-red-700" : "text-blue-700")}>Sof foyda</p>
+                <p className={cn("text-xl font-bold num", modalData.profit < 0 ? "text-red-600" : "text-blue-900")}>
+                  {modalData.profit < 0 ? "-" : ""}{fmt(modalData.profit)}
+                </p>
               </div>
-              <div className="rounded-xl p-4 border border-purple-100 bg-purple-50">
-                <p className="text-xs text-purple-700 font-medium mb-1">Umumiy sof foyda (2 filial)</p>
-                <p className="text-xl font-bold text-purple-900 num">{fmt(totalProfit)}</p>
-                <p className="text-xs text-purple-600 mt-1">Novza: {fmt(novzaProfit)}  +  Yunusobod: {fmt(yunusobodProfit)}</p>
+              <div className={cn("rounded-xl p-4 border", totalProfit < 0 ? "border-red-100 bg-red-50" : "border-purple-100 bg-purple-50")}>
+                <p className={cn("text-xs font-medium mb-1", totalProfit < 0 ? "text-red-700" : "text-purple-700")}>Umumiy sof foyda (2 filial)</p>
+                <p className={cn("text-xl font-bold num", totalProfit < 0 ? "text-red-600" : "text-purple-900")}>
+                  {totalProfit < 0 ? "-" : ""}{fmt(totalProfit)}
+                </p>
+                <p className={cn("text-xs mt-1", totalProfit < 0 ? "text-red-500" : "text-purple-600")}>
+                  Novza: {novzaProfit < 0 ? "-" : ""}{fmt(novzaProfit)} + Yunusobod: {yunusobodProfit < 0 ? "-" : ""}{fmt(yunusobodProfit)}
+                </p>
               </div>
             </div>
           </div>
@@ -557,7 +582,12 @@ export function Moliya() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                <th className="pb-3 font-medium">Sana</th><th className="pb-3 font-medium">Ism</th><th className="pb-3 font-medium">Filial</th><th className="pb-3 font-medium">Turi</th><th className="pb-3 font-medium text-right">Summa</th><th className="pb-3 font-medium">Izoh</th>
+                <th className="pb-3 font-medium">Sana</th>
+                <th className="pb-3 font-medium">Ism</th>
+                <th className="pb-3 font-medium">Filial</th>
+                <th className="pb-3 font-medium">Turi</th>
+                <th className="pb-3 font-medium text-right">Summa</th>
+                <th className="pb-3 font-medium">Izoh</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -567,7 +597,9 @@ export function Moliya() {
                   <td className="py-3 font-medium">{r.ism}</td>
                   <td className="py-3 text-muted-foreground">{r.filial}</td>
                   <td className="py-3 text-muted-foreground">{r.turi}</td>
-                  <td className={`py-3 text-right num font-semibold ${r.summa >= 0 ? "text-emerald-600" : "text-red-500"}`}>{r.summa >= 0 ? "+" : "-"}{fmt(Math.abs(r.summa))}</td>
+                  <td className={`py-3 text-right num font-semibold ${r.summa >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {r.summa >= 0 ? "+" : "-"}{fmt(Math.abs(r.summa))}
+                  </td>
                   <td className="py-3 text-muted-foreground text-xs max-w-[200px] truncate">{r.izoh || "—"}</td>
                 </tr>
               ))}
