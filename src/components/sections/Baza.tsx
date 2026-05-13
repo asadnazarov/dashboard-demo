@@ -12,8 +12,8 @@ const RANGE     = "%D0%9B%D0%B8%D1%81%D1%821!A:Q";
 const WEBHOOK   = "https://n8n.srv1215497.hstgr.cloud/webhook/admin";
 
 const DEFAULT_HODIMLAR = [
-  "Rayhon","Ziyoda","Omina","Jamshid","Dilshod",
-  "Muxlisa","Firdavs","Shamsiddin","Muslima","Diyor","Odil","Zarnigor","Begzod"
+  "Rayhon","Ziyoda","Jamshid","Dilshod",
+  "Firdavs","Shamsiddin","Muslima","Diyor","Odil","Zarnigor","Begzod"
 ];
 
 const VAQTLAR = ["10:00","13:00","15:00","19:00","21:00"];
