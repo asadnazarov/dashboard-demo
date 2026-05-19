@@ -41,27 +41,27 @@ function sameDay(a: Date, b: Date) {
 }
 
 interface DavRow {
-  rowIndex:         number;
-  ism:              string;
-  telefon:          string;
-  filial:           string;
-  smena:            string;
-  sana:             string;
-  holat:            string;
-  imtihon:          string;
-  pravaOldi:        string;
+  rowIndex:             number;
+  ism:                  string;
+  telefon:              string;
+  filial:               string;
+  smena:                string;
+  sana:                 string;
+  holat:                string;
+  imtihon:              string;
+  pravaOldi:            string;
   darsBoshlanishSanasi: string;
 }
 
 interface Student {
-  ism:              string;
-  telefon:          string;
-  filial:           string;
-  smena:            string;
-  pravaOldi:        string;
-  imtihon:          string;
+  ism:                  string;
+  telefon:              string;
+  filial:               string;
+  smena:                string;
+  pravaOldi:            string;
+  imtihon:              string;
   darsBoshlanishSanasi: string;
-  rows:             DavRow[];
+  rows:                 DavRow[];
 }
 
 type Tab = "davomat" | "jadval";
@@ -82,6 +82,7 @@ export function Ustoz() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const [tab,      setTab]      = useState<Tab>("davomat");
+  const [davFilial, setDavFilial] = useState("Novza");
   const [search,   setSearch]   = useState("");
   const [filterSmena,  setFilterSmena]  = useState("Barchasi");
   const [filterFilial, setFilterFilial] = useState("Barchasi");
@@ -247,12 +248,12 @@ export function Ustoz() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action:                "add_student",
-          ism:                   addIsm,
-          telefon:               addTel,
-          filial:                addFilial,
-          smena:                 addSmena,
-          dars_kuni:             toSheetDate(addDars),
+          action:                 "add_student",
+          ism:                    addIsm,
+          telefon:                addTel,
+          filial:                 addFilial,
+          smena:                  addSmena,
+          dars_kuni:              toSheetDate(addDars),
           dars_boshlanish_sanasi: toSheetDate(addDars),
         }),
       });
@@ -275,8 +276,10 @@ export function Ustoz() {
     </div>
   );
 
+  const davomatStudents = activeStudents.filter(s => s.filial === davFilial);
+
   const bySmena: Record<string, Student[]> = {};
-  activeStudents.forEach(s => {
+  davomatStudents.forEach(s => {
     const key = s.smena || "Noma'lum";
     if (!bySmena[key]) bySmena[key] = [];
     bySmena[key].push(s);
@@ -285,7 +288,7 @@ export function Ustoz() {
     Object.keys(bySmena).filter(k => !VAQTLAR.includes(k))
   );
 
-  const totalToday = activeStudents.filter(s => isMarkedToday(s.telefon)).length;
+  const totalToday = davomatStudents.filter(s => isMarkedToday(s.telefon)).length;
 
   const filteredStudents = allStudents.filter(s => {
     const q = search.toLowerCase();
@@ -370,10 +373,15 @@ export function Ustoz() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab("davomat")}
+        <button onClick={() => { setTab("davomat"); setDavFilial("Novza"); }}
           className={cn("px-4 py-1.5 rounded-lg text-sm font-medium transition",
-            tab === "davomat" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}>
-          Davomat
+            tab === "davomat" && davFilial === "Novza" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}>
+          Davomat Novza
+        </button>
+        <button onClick={() => { setTab("davomat"); setDavFilial("Yunusobod"); }}
+          className={cn("px-4 py-1.5 rounded-lg text-sm font-medium transition",
+            tab === "davomat" && davFilial === "Yunusobod" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}>
+          Davomat Yunusobod
         </button>
         <button onClick={() => setTab("jadval")}
           className={cn("px-4 py-1.5 rounded-lg text-sm font-medium transition",
@@ -440,7 +448,7 @@ export function Ustoz() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-muted-foreground">
-              Bugun belgilandi: <span className="font-semibold text-foreground">{totalToday}</span> / {activeStudents.length}
+              Bugun belgilandi: <span className="font-semibold text-foreground">{totalToday}</span> / {davomatStudents.length}
             </p>
           </div>
           {sortedSmenas.length === 0 ? (
@@ -717,9 +725,7 @@ export function Ustoz() {
                     <span className="text-sm font-medium">{d.sana}</span>
                   </div>
                   <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full",
-                    d.holat === "Bor"
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-red-500/10 text-red-500")}>
+                    d.holat === "Bor" ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500")}>
                     {d.holat || "—"}
                   </span>
                 </div>
