@@ -14,7 +14,6 @@ const ONLINE_WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/add";
 const UZ_MONTHS = ["Yan","Fev","Mar","Apr","May","Iyn","Iyl","Avg","Sen","Okt","Noy","Dek"];
 const EXPENSE_COLORS = ["hsl(222 47% 11%)","hsl(220 9% 46%)","hsl(230 70% 55%)","hsl(38 92% 50%)","hsl(220 13% 78%)"];
 
-// ============ PUL TAQSIMOTI SOZLAMASI ============
 interface Bucket { id: string; nomi: string; summa: number; kun: number; ustuvor: number; }
 const BUCKETS: Bucket[] = [
   { id: "ikrom",      nomi: "Ikrom Bekturdiyev (sherik)",   summa: 15_000_000, kun: 3,  ustuvor: 2 },
@@ -28,12 +27,12 @@ const BUCKETS: Bucket[] = [
   { id: "operator2",  nomi: "2 operator oyligi",            summa: 10_000_000, kun: 20, ustuvor: 1 },
   { id: "rahbar_21",  nomi: "Rahbarlar oyligi (21-kun)",    summa: 20_000_000, kun: 21, ustuvor: 1 },
   { id: "rahbar_28",  nomi: "Rahbarlar oyligi (28-kun)",    summa: 20_000_000, kun: 28, ustuvor: 1 },
-  { id: "soliq",      nomi: "Soliq",                        summa: 5_000_000,  kun: 30, ustuvor: 2 },
-  { id: "marketing",  nomi: "Marketing",                    summa: 10_000_000, kun: 30, ustuvor: 3 },
-  { id: "ofis",       nomi: "Ofis xarajatlari",             summa: 6_000_000,  kun: 30, ustuvor: 3 },
-  { id: "ai",         nomi: "AI xarajatlari",               summa: 3_000_000,  kun: 30, ustuvor: 3 },
-  { id: "ehson",      nomi: "Ehson / Xayriya",              summa: 1_000_000,  kun: 30, ustuvor: 2 },
-  { id: "podushka",   nomi: "Moliyaviy yostiq (zaxira)",    summa: 5_000_000,  kun: 30, ustuvor: 4 },
+  { id: "soliq",      nomi: "Soliq",                        summa: 5_000_000,  kun: 31, ustuvor: 2 },
+  { id: "marketing",  nomi: "Marketing",                    summa: 10_000_000, kun: 31, ustuvor: 3 },
+  { id: "ofis",       nomi: "Ofis xarajatlari",             summa: 6_000_000,  kun: 31, ustuvor: 3 },
+  { id: "ai",         nomi: "AI xarajatlari",               summa: 3_000_000,  kun: 31, ustuvor: 3 },
+  { id: "ehson",      nomi: "Ehson / Xayriya",              summa: 1_000_000,  kun: 31, ustuvor: 2 },
+  { id: "podushka",   nomi: "Moliyaviy yostiq (zaxira)",    summa: 5_000_000,  kun: 31, ustuvor: 4 },
 ];
 
 interface TaqsimItem {
@@ -45,7 +44,6 @@ interface TaqsimResult {
 }
 
 function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
-  // 1) O'tgan 1-2 oy kirimlarini tahlil qilish (kunlik o'rtacha)
   const oylar: { oy: number; yil: number }[] = [];
   for (let i = 1; i <= 2; i++) {
     const d = new Date(bugun.getFullYear(), bugun.getMonth() - i, 1);
@@ -76,25 +74,26 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
   }
   const kunlikKirim = kunSoni > 0 ? Math.round(jamiKirim / kunSoni) : 0;
 
-  // 2) Kassa = barcha vaqt uchun HAMMA kirim minus HAMMA chiqim (totalProfit)
   const kassaKirim = rows.filter(r => r.summa > 0).reduce((s, r) => s + r.summa, 0);
   const kassaChiqim = rows.filter(r => r.summa < 0).reduce((s, r) => s + Math.abs(r.summa), 0);
   const kassa = Math.max(0, kassaKirim - kassaChiqim);
 
-  // 3) Har bir xarajat uchun kun qoldi
-  const bugunKun = bugun.getDate();
   const items: TaqsimItem[] = BUCKETS.map(b => {
-    let kunQoldi: number;
-    if (b.kun <= bugunKun) {
-      const keyingi = new Date(bugun.getFullYear(), bugun.getMonth() + 1, b.kun);
-      kunQoldi = Math.max(1, Math.ceil((keyingi.getTime() - bugun.getTime()) / 86400000));
+    let targetSana: Date;
+    if (b.kun === 31) {
+      targetSana = new Date(bugun.getFullYear(), bugun.getMonth() + 1, 0);
     } else {
-      kunQoldi = b.kun - bugunKun;
+      const buOyda = new Date(bugun.getFullYear(), bugun.getMonth(), b.kun);
+      if (buOyda > bugun) {
+        targetSana = buOyda;
+      } else {
+        targetSana = new Date(bugun.getFullYear(), bugun.getMonth() + 1, b.kun);
+      }
     }
+    const kunQoldi = Math.max(1, Math.ceil((targetSana.getTime() - bugun.getTime()) / 86400000));
     return { id: b.id, nomi: b.nomi, kerak: b.summa, toplangan: 0, foiz: 0, targetKun: b.kun, kunQoldi, yetarli: false };
   });
 
-  // 4) Kassani ustuvorlik + shoshilinchlik bo'yicha taqsimlash
   let qolgan = kassa;
   const ustuvorlar = [...new Set(BUCKETS.map(b => b.ustuvor))].sort((a, b) => a - b);
   for (const u of ustuvorlar) {
@@ -120,7 +119,6 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
     }
   }
 
-  // 5) Foiz, yetarlilik, saralash (kun qoldi bo'yicha o'sish)
   items.forEach(i => {
     i.foiz = Math.min(100, Math.round((i.toplangan / i.kerak) * 100));
     i.yetarli = i.toplangan >= i.kerak - 1;
@@ -129,7 +127,6 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
 
   return { items, kunlikKirim, tahlilOylar, qolgan: Math.max(0, qolgan) };
 }
-// =================================================
 
 const fmt = (n: number) => Math.round(Math.abs(n)).toLocaleString("ru-RU") + " so'm";
 const fmtShort = (n: number) => {
@@ -525,7 +522,7 @@ export function Moliya() {
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">Pul taqsimoti</span>
               <button
-                onClick={e => { e.stopPropagation(); setTahlilOpen(v => !v); }}
+                onClick={e => { e.stopPropagation(); setTahlilOpen(v => !v); setTaqsimOpen(true); }}
                 className="h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition"
               >
                 <Info className="h-3 w-3" />
@@ -546,7 +543,7 @@ export function Moliya() {
           {taqsimOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
         </button>
 
-        {tahlilOpen && (
+        {taqsimOpen && tahlilOpen && (
           <div className="mx-5 mb-3 p-4 rounded-xl border border-blue-200 bg-blue-50 text-xs text-blue-900">
             <p className="font-semibold mb-2">📊 Nima asosida taqsimlanyapti?</p>
             <p className="mb-2">
@@ -564,9 +561,7 @@ export function Moliya() {
               3️⃣ Marketing, ofis, AI<br />
               4️⃣ Moliyaviy zaxira (oxirgi)
             </p>
-            <p className="text-blue-700">
-              ⚠️ Bu prognoz hisobi — kassaga yangi pul tushganda avtomatik yangilanadi.
-            </p>
+            <p className="text-blue-700">⚠️ Bu prognoz hisobi — kassaga yangi pul tushganda avtomatik yangilanadi.</p>
           </div>
         )}
 
@@ -586,7 +581,7 @@ export function Moliya() {
                       <span className="font-medium text-sm truncate">{v.nomi}</span>
                     </div>
                     <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                      {v.targetKun}-kun · {v.kunQoldi} kun qoldi
+                      {v.targetKun === 31 ? "Oy oxiri" : `${v.targetKun}-kun`} · {v.kunQoldi} kun qoldi
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-secondary overflow-hidden mb-1">
