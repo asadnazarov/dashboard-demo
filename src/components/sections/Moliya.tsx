@@ -1,3 +1,4 @@
+```tsx
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
 import { TrendingUp, Loader2, AlertCircle, Plus, X, CheckCircle2, Clock, CalendarClock, Globe, ChevronDown, ChevronUp, AlertTriangle, Info } from "lucide-react";
@@ -14,25 +15,25 @@ const ONLINE_WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/add";
 const UZ_MONTHS = ["Yan","Fev","Mar","Apr","May","Iyn","Iyl","Avg","Sen","Okt","Noy","Dek"];
 const EXPENSE_COLORS = ["hsl(222 47% 11%)","hsl(220 9% 46%)","hsl(230 70% 55%)","hsl(38 92% 50%)","hsl(220 13% 78%)"];
 
-interface Bucket { id: string; nomi: string; summa: number; kun: number; ustuvor: number; }
+interface Bucket { id: string; nomi: string; summa: number; kun: number; }
 const BUCKETS: Bucket[] = [
-  { id: "ikrom",      nomi: "Ikrom Bekturdiyev (sherik)",   summa: 15_000_000, kun: 3,  ustuvor: 2 },
-  { id: "oqit_op",    nomi: "O'qituvchilar + operatorlar",  summa: 38_000_000, kun: 4,  ustuvor: 1 },
-  { id: "rahbar_7",   nomi: "Rahbarlar oyligi (7-kun)",     summa: 20_000_000, kun: 7,  ustuvor: 1 },
-  { id: "ar_novza",   nomi: "Novza filial arendasi",        summa: 18_000_000, kun: 7,  ustuvor: 1 },
-  { id: "ar_yunus",   nomi: "Yunusobod filial arendasi",    summa: 9_000_000,  kun: 9,  ustuvor: 1 },
-  { id: "doniyor",    nomi: "Doniyor aka (sherik)",         summa: 20_000_000, kun: 10, ustuvor: 2 },
-  { id: "rahbar_14",  nomi: "Rahbarlar oyligi (14-kun)",    summa: 20_000_000, kun: 14, ustuvor: 1 },
-  { id: "rop",        nomi: "Rop oyligi",                   summa: 7_000_000,  kun: 15, ustuvor: 1 },
-  { id: "operator2",  nomi: "2 operator oyligi",            summa: 10_000_000, kun: 20, ustuvor: 1 },
-  { id: "rahbar_21",  nomi: "Rahbarlar oyligi (21-kun)",    summa: 20_000_000, kun: 21, ustuvor: 1 },
-  { id: "rahbar_28",  nomi: "Rahbarlar oyligi (28-kun)",    summa: 20_000_000, kun: 28, ustuvor: 1 },
-  { id: "soliq",      nomi: "Soliq",                        summa: 5_000_000,  kun: 31, ustuvor: 2 },
-  { id: "marketing",  nomi: "Marketing",                    summa: 10_000_000, kun: 31, ustuvor: 3 },
-  { id: "ofis",       nomi: "Ofis xarajatlari",             summa: 6_000_000,  kun: 31, ustuvor: 3 },
-  { id: "ai",         nomi: "AI xarajatlari",               summa: 3_000_000,  kun: 31, ustuvor: 3 },
-  { id: "ehson",      nomi: "Ehson / Xayriya",              summa: 1_000_000,  kun: 31, ustuvor: 2 },
-  { id: "podushka",   nomi: "Moliyaviy yostiq (zaxira)",    summa: 5_000_000,  kun: 31, ustuvor: 4 },
+  { id: "ikrom",      nomi: "Ikrom Bekturdiyev (sherik)",  summa: 15_000_000, kun: 3  },
+  { id: "oqit_op",    nomi: "O'qituvchilar + operatorlar", summa: 38_000_000, kun: 4  },
+  { id: "rahbar_7",   nomi: "Rahbarlar oyligi (7-kun)",    summa: 20_000_000, kun: 7  },
+  { id: "ar_novza",   nomi: "Novza filial arendasi",       summa: 18_000_000, kun: 7  },
+  { id: "ar_yunus",   nomi: "Yunusobod filial arendasi",   summa: 9_000_000,  kun: 9  },
+  { id: "doniyor",    nomi: "Doniyor aka (sherik)",        summa: 20_000_000, kun: 10 },
+  { id: "rahbar_14",  nomi: "Rahbarlar oyligi (14-kun)",   summa: 20_000_000, kun: 14 },
+  { id: "rop",        nomi: "Rop oyligi",                  summa: 7_000_000,  kun: 15 },
+  { id: "operator2",  nomi: "2 operator oyligi",           summa: 10_000_000, kun: 20 },
+  { id: "rahbar_21",  nomi: "Rahbarlar oyligi (21-kun)",   summa: 20_000_000, kun: 21 },
+  { id: "rahbar_28",  nomi: "Rahbarlar oyligi (28-kun)",   summa: 20_000_000, kun: 28 },
+  { id: "soliq",      nomi: "Soliq",                       summa: 5_000_000,  kun: 31 },
+  { id: "marketing",  nomi: "Marketing",                   summa: 10_000_000, kun: 31 },
+  { id: "ofis",       nomi: "Ofis xarajatlari",            summa: 6_000_000,  kun: 31 },
+  { id: "ai",         nomi: "AI xarajatlari",              summa: 3_000_000,  kun: 31 },
+  { id: "ehson",      nomi: "Ehson / Xayriya",             summa: 1_000_000,  kun: 31 },
+  { id: "podushka",   nomi: "Moliyaviy yostiq (zaxira)",   summa: 5_000_000,  kun: 31 },
 ];
 
 interface TaqsimItem {
@@ -84,39 +85,49 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
       targetSana = new Date(bugun.getFullYear(), bugun.getMonth() + 1, 0);
     } else {
       const buOyda = new Date(bugun.getFullYear(), bugun.getMonth(), b.kun);
-      if (buOyda > bugun) {
-        targetSana = buOyda;
-      } else {
-        targetSana = new Date(bugun.getFullYear(), bugun.getMonth() + 1, b.kun);
-      }
+      targetSana = buOyda > bugun
+        ? buOyda
+        : new Date(bugun.getFullYear(), bugun.getMonth() + 1, b.kun);
     }
     const kunQoldi = Math.max(1, Math.ceil((targetSana.getTime() - bugun.getTime()) / 86400000));
     return { id: b.id, nomi: b.nomi, kerak: b.summa, toplangan: 0, foiz: 0, targetKun: b.kun, kunQoldi, yetarli: false };
   });
 
-  let qolgan = kassa;
-  const ustuvorlar = [...new Set(BUCKETS.map(b => b.ustuvor))].sort((a, b) => a - b);
-  for (const u of ustuvorlar) {
-    if (qolgan <= 0) break;
-    let guruh = items.filter(i => {
-      const b = BUCKETS.find(x => x.id === i.id)!;
-      return b.ustuvor === u && i.toplangan < i.kerak - 1;
+  const sorted = [...items].sort((a, b) => a.kunQoldi - b.kunQoldi);
+  const jamiSumma = BUCKETS.reduce((s, b) => s + b.summa, 0);
+
+  let qolganKassa = kassa;
+  let iteratsiya = 0;
+  const MAX_ITER = 1000;
+
+  while (qolganKassa > 100 && iteratsiya < MAX_ITER) {
+    iteratsiya++;
+    const yopilmaganlar = sorted.filter(i => !i.yetarli);
+    if (yopilmaganlar.length === 0) break;
+
+    const birinchi4Ids = new Set(yopilmaganlar.slice(0, 4).map(i => i.id));
+
+    const vaznlar = yopilmaganlar.map(i => {
+      const bazaviy = i.kerak / jamiSumma;
+      const koef = birinchi4Ids.has(i.id) ? 2 : 1;
+      return { id: i.id, vazn: bazaviy * koef };
     });
-    while (qolgan > 1 && guruh.length > 0) {
-      const vaznlar = guruh.map(i => (i.kerak - i.toplangan) / Math.max(1, i.kunQoldi));
-      const jamiVazn = vaznlar.reduce((a, b) => a + b, 0);
-      if (jamiVazn <= 0) break;
-      let ishlatildi = 0;
-      guruh.forEach((item, idx) => {
-        const ulush = qolgan * (vaznlar[idx] / jamiVazn);
-        const beriladi = Math.min(ulush, item.kerak - item.toplangan);
-        item.toplangan += beriladi;
-        ishlatildi += beriladi;
-      });
-      qolgan -= ishlatildi;
-      guruh = guruh.filter(i => i.toplangan < i.kerak - 1);
-      if (ishlatildi < 1) break;
-    }
+    const jamiVazn = vaznlar.reduce((s, v) => s + v.vazn, 0);
+    if (jamiVazn <= 0) break;
+
+    let iterBerdi = 0;
+    vaznlar.forEach(v => {
+      const item = items.find(i => i.id === v.id)!;
+      const ulush = qolganKassa * (v.vazn / jamiVazn);
+      const kerakYana = item.kerak - item.toplangan;
+      const beriladi = Math.min(ulush, kerakYana);
+      item.toplangan += beriladi;
+      iterBerdi += beriladi;
+    });
+
+    qolganKassa -= iterBerdi;
+    items.forEach(i => { i.yetarli = i.toplangan >= i.kerak - 1; });
+    if (iterBerdi < 1) break;
   }
 
   items.forEach(i => {
@@ -125,7 +136,7 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
   });
   items.sort((a, b) => a.kunQoldi - b.kunQoldi);
 
-  return { items, kunlikKirim, tahlilOylar, qolgan: Math.max(0, qolgan) };
+  return { items, kunlikKirim, tahlilOylar, qolgan: Math.max(0, qolganKassa) };
 }
 
 const fmt = (n: number) => Math.round(Math.abs(n)).toLocaleString("ru-RU") + " so'm";
@@ -476,7 +487,6 @@ export function Moliya() {
         </div>
       )}
 
-      {/* Marja */}
       <div className={cn("rounded-2xl p-5 shadow-soft border mb-4",
         totalProfit < 0 ? "border-red-200 bg-gradient-to-br from-red-50 to-white" : "border-purple-100 bg-gradient-to-br from-purple-50 to-white")}>
         <div className="flex items-center justify-between">
@@ -494,7 +504,6 @@ export function Moliya() {
         </div>
       </div>
 
-      {/* Novza Yunusobod */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className={cn("rounded-2xl p-5 shadow-soft border cursor-pointer transition",
           novzaProfit < 0 ? "border-red-200 bg-gradient-to-br from-red-50 to-white hover:border-red-300" : "border-blue-100 bg-gradient-to-br from-blue-50 to-white hover:border-blue-300")}
@@ -512,7 +521,6 @@ export function Moliya() {
         </div>
       </div>
 
-      {/* PUL TAQSIMOTI */}
       <div className="bg-card rounded-2xl border border-border shadow-soft mb-6 overflow-hidden">
         <button
           onClick={() => setTaqsimOpen(v => !v)}
@@ -551,15 +559,10 @@ export function Moliya() {
               O'sha oylar bo'yicha kunlik o'rtacha kirim: <strong>{fmt(taqsim.kunlikKirim)}</strong>.
             </p>
             <p className="mb-2">
-              Hozirgi kassada: <strong>{fmt(Math.max(0, rows.filter(r => r.summa > 0).reduce((s,r) => s+r.summa,0) - rows.filter(r => r.summa < 0).reduce((s,r) => s+Math.abs(r.summa),0)))}</strong> bor.
-              Shu pul har bir xarajatga qancha kun qolganiga qarab taqsimlanadi — qancha kam kun qolsa, shuncha katta ulush oladi.
+              Kassadagi pul har bir xarajatning summasiga qarab foiz bilan taqsimlanadi — katta summa = katta foiz. Eng yaqin 4 xarajat 2x ustunlikka ega, qolganlar oddiy foiz oladi. Biror xarajat yopilsa, uning foizi qolganlar o'rtasida taqsimlanadi.
             </p>
             <p className="mb-2">
-              <strong>Ustuvorlik tartibi:</strong><br />
-              1️⃣ Maoshlar va arenda (eng muhim)<br />
-              2️⃣ Sheriklar va soliq<br />
-              3️⃣ Marketing, ofis, AI<br />
-              4️⃣ Moliyaviy zaxira (oxirgi)
+              <strong>Ustuvorlik:</strong> Eng yaqin 4 xarajat → 2x foiz. Yopilgach keyingi 4 avtomatik ustuvorlikka o'tadi.
             </p>
             <p className="text-blue-700">⚠️ Bu prognoz hisobi — kassaga yangi pul tushganda avtomatik yangilanadi.</p>
           </div>
@@ -607,7 +610,6 @@ export function Moliya() {
         )}
       </div>
 
-      {/* Rejadagi xarajatlar */}
       <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -661,7 +663,6 @@ export function Moliya() {
         )}
       </div>
 
-      {/* Modal */}
       {modalFilial && modalData && (
         <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card rounded-2xl border border-border shadow-elevated w-full max-w-md">
@@ -694,7 +695,6 @@ export function Moliya() {
         </div>
       )}
 
-      {/* График */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-5 shadow-soft">
           <div className="flex items-start justify-between mb-4">
@@ -745,7 +745,6 @@ export function Moliya() {
         </div>
       </div>
 
-      {/* Filtr */}
       <div className="bg-card rounded-2xl border border-border p-5 shadow-soft mb-4">
         <h3 className="font-semibold mb-4">Filtr</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -778,7 +777,6 @@ export function Moliya() {
         </div>
       </div>
 
-      {/* Таблица */}
       <div className="bg-card rounded-2xl border border-border p-5 shadow-soft">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Tranzaksiyalar ({tableFiltered.length})</h3>
