@@ -1,4 +1,3 @@
-tsx
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
 import { TrendingUp, Loader2, AlertCircle, Plus, X, CheckCircle2, Clock, CalendarClock, Globe, ChevronDown, ChevronUp, AlertTriangle, Info } from "lucide-react";
@@ -107,17 +106,14 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
     iteratsiya++;
     const yopilmaganlar = sorted.filter(function(i) { return !i.yetarli; });
     if (yopilmaganlar.length === 0) break;
-
-    const birinchi4Ids = new Set(yopilmaganlar.slice(0, 4).map(function(i) { return i.id; }));
-
+    const birinchi4 = new Set(yopilmaganlar.slice(0, 4).map(function(i) { return i.id; }));
     const vaznlar = yopilmaganlar.map(function(i) {
       const bazaviy = i.kerak / jamiSumma;
-      const koef = birinchi4Ids.has(i.id) ? 2 : 1;
+      const koef = birinchi4.has(i.id) ? 2 : 1;
       return { id: i.id, vazn: bazaviy * koef };
     });
     const jamiVazn = vaznlar.reduce(function(s, v) { return s + v.vazn; }, 0);
     if (jamiVazn <= 0) break;
-
     let iterBerdi = 0;
     vaznlar.forEach(function(v) {
       const item = items.find(function(i) { return i.id === v.id; });
@@ -128,7 +124,6 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
       item.toplangan += beriladi;
       iterBerdi += beriladi;
     });
-
     qolganKassa -= iterBerdi;
     items.forEach(function(i) { i.yetarli = i.toplangan >= i.kerak - 1; });
     if (iterBerdi < 1) break;
@@ -844,4 +839,3 @@ export function Moliya() {
     </div>
   );
 }
-
