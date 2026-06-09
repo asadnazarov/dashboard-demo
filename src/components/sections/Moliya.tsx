@@ -14,44 +14,50 @@ const ONLINE_WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/add";
 const UZ_MONTHS = ["Yan","Fev","Mar","Apr","May","Iyn","Iyl","Avg","Sen","Okt","Noy","Dek"];
 const EXPENSE_COLORS = ["hsl(222 47% 11%)","hsl(220 9% 46%)","hsl(230 70% 55%)","hsl(38 92% 50%)","hsl(220 13% 78%)"];
 
-interface Bucket { id: string; nomi: string; summa: number; kun: number; }
+// Chiqim Turi kategoriyalari bilan bog'liq BUCKETS
+// hasDate: true = aniq sana bor, false = oy davomida
+interface Bucket {
+  id: string; nomi: string; summa: number; kun: number;
+  chiqimTuri: string; hasDate: boolean;
+}
 const BUCKETS: Bucket[] = [
-  { id: "ikrom",     nomi: "Ikrom Bekturdiyev (sherik)",  summa: 15000000, kun: 3  },
-  { id: "oqit_op",   nomi: "O'qituvchilar + operatorlar", summa: 38000000, kun: 4  },
-  { id: "rahbar_7",  nomi: "Rahbarlar oyligi (7-kun)",    summa: 20000000, kun: 7  },
-  { id: "ar_novza",  nomi: "Novza filial arendasi",       summa: 18000000, kun: 7  },
-  { id: "ar_yunus",  nomi: "Yunusobod filial arendasi",   summa: 9000000,  kun: 9  },
-  { id: "doniyor",   nomi: "Doniyor aka (sherik)",        summa: 20000000, kun: 10 },
-  { id: "rahbar_14", nomi: "Rahbarlar oyligi (14-kun)",   summa: 20000000, kun: 14 },
-  { id: "rop",       nomi: "Rop oyligi",                  summa: 7000000,  kun: 15 },
-  { id: "operator2", nomi: "2 operator oyligi",           summa: 10000000, kun: 20 },
-  { id: "rahbar_21", nomi: "Rahbarlar oyligi (21-kun)",   summa: 20000000, kun: 21 },
-  { id: "rahbar_28", nomi: "Rahbarlar oyligi (28-kun)",   summa: 20000000, kun: 28 },
-  { id: "soliq",     nomi: "Soliq",                       summa: 5000000,  kun: 31 },
-  { id: "marketing", nomi: "Marketing",                   summa: 10000000, kun: 31 },
-  { id: "ofis",      nomi: "Ofis xarajatlari",            summa: 6000000,  kun: 31 },
-  { id: "ai",        nomi: "AI xarajatlari",              summa: 3000000,  kun: 31 },
-  { id: "ehson",     nomi: "Ehson / Xayriya",             summa: 1000000,  kun: 31 },
-  { id: "podushka",  nomi: "Moliyaviy yostiq (zaxira)",   summa: 5000000,  kun: 31 },
+  { id: "ikrom",     nomi: "Ikrom Bekturdiyev (sherik)",  summa: 15000000, kun: 3,  chiqimTuri: "Mavsumiy sherik", hasDate: true  },
+  { id: "oqit_op",   nomi: "O'qituvchilar + operatorlar", summa: 38000000, kun: 4,  chiqimTuri: "Oylik",           hasDate: true  },
+  { id: "rahbar_7",  nomi: "Rahbarlar oyligi (7-kun)",    summa: 20000000, kun: 7,  chiqimTuri: "Foyda",           hasDate: true  },
+  { id: "ar_novza",  nomi: "Novza filial arendasi",       summa: 18000000, kun: 7,  chiqimTuri: "Arenda Novza",    hasDate: true  },
+  { id: "ar_yunus",  nomi: "Yunusobod filial arendasi",   summa: 9000000,  kun: 9,  chiqimTuri: "Arenda Yunusobod",hasDate: true  },
+  { id: "doniyor",   nomi: "Doniyor aka (sherik)",        summa: 20000000, kun: 10, chiqimTuri: "Mavsumiy sherik", hasDate: true  },
+  { id: "rahbar_14", nomi: "Rahbarlar oyligi (14-kun)",   summa: 20000000, kun: 14, chiqimTuri: "Foyda",           hasDate: true  },
+  { id: "rop",       nomi: "Rop oyligi",                  summa: 7000000,  kun: 15, chiqimTuri: "Oylik",           hasDate: true  },
+  { id: "operator2", nomi: "2 operator oyligi",           summa: 10000000, kun: 20, chiqimTuri: "Oylik",           hasDate: true  },
+  { id: "rahbar_21", nomi: "Rahbarlar oyligi (21-kun)",   summa: 20000000, kun: 21, chiqimTuri: "Foyda",           hasDate: true  },
+  { id: "rahbar_28", nomi: "Rahbarlar oyligi (28-kun)",   summa: 20000000, kun: 28, chiqimTuri: "Foyda",           hasDate: true  },
+  { id: "soliq",     nomi: "Soliq",                       summa: 5000000,  kun: 31, chiqimTuri: "Soliq",           hasDate: false },
+  { id: "marketing", nomi: "Marketing",                   summa: 10000000, kun: 31, chiqimTuri: "Marketing",       hasDate: false },
+  { id: "ofis",      nomi: "Ofis xarajatlari",            summa: 6000000,  kun: 31, chiqimTuri: "Ofis harajat",    hasDate: false },
+  { id: "ai",        nomi: "AI xarajatlari",              summa: 3000000,  kun: 31, chiqimTuri: "AI harajatlari",  hasDate: false },
+  { id: "ehson",     nomi: "Ehson / Xayriya",             summa: 1000000,  kun: 31, chiqimTuri: "Ehson/Xayriya",  hasDate: false },
+  { id: "podushka",  nomi: "Moliyaviy yostiq (zaxira)",   summa: 5000000,  kun: 31, chiqimTuri: "",                hasDate: false },
 ];
 
 interface TaqsimItem {
-  id: string; nomi: string; kerak: number; toplangan: number;
-  foiz: number; targetKun: number; kunQoldi: number; yetarli: boolean;
+  id: string; nomi: string; kerak: number; tolangan: number; qoldi: number;
+  toplangan: number; foiz: number; targetKun: number; kunQoldi: number;
+  yetarli: boolean; tolanganReal: boolean; hasDate: boolean;
 }
 interface TaqsimResult {
   items: TaqsimItem[]; kunlikKirim: number; tahlilOylar: string[]; qolgan: number;
 }
 
 function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
+  // 1) Tahlil: o'tgan 1-2 oy kunlik o'rtacha kirim
   const oylar: { oy: number; yil: number }[] = [];
   for (let i = 1; i <= 2; i++) {
     const d = new Date(bugun.getFullYear(), bugun.getMonth() - i, 1);
     oylar.push({ oy: d.getMonth(), yil: d.getFullYear() });
   }
   const tahlilOylar: string[] = [];
-  let jamiKirim = 0;
-  let kunSoni = 0;
+  let jamiKirim = 0; let kunSoni = 0;
   oylar.forEach(function(it) {
     const oy = it.oy; const yil = it.yil;
     const oyRows = rows.filter(function(r) {
@@ -76,10 +82,39 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
   }
   const kunlikKirim = kunSoni > 0 ? Math.round(jamiKirim / kunSoni) : 0;
 
+  // 2) Kassa
   const kassaKirim = rows.filter(function(r) { return r.summa > 0; }).reduce(function(s, r) { return s + r.summa; }, 0);
   const kassaChiqim = rows.filter(function(r) { return r.summa < 0; }).reduce(function(s, r) { return s + Math.abs(r.summa); }, 0);
   const kassa = Math.max(0, kassaKirim - kassaChiqim);
 
+  // 3) Joriy oy: har kategoriya bo'yicha qancha to'langan
+  const joriyOy = bugun.getMonth();
+  const joriyYil = bugun.getFullYear();
+  const joriyOyRows = rows.filter(function(r) {
+    const p = r.sana.split(".");
+    if (p.length < 3) return false;
+    return parseInt(p[1]) - 1 === joriyOy && parseInt(p[2]) === joriyYil && r.summa < 0;
+  });
+
+  // Kategoriya bo'yicha to'langan summa (joriy oy)
+  const kategoriaTolangan: Record<string, number> = {};
+  joriyOyRows.forEach(function(r) {
+    const turi = r.chiqimTuri || "";
+    if (!turi) return;
+    kategoriaTolangan[turi] = (kategoriaTolangan[turi] || 0) + Math.abs(r.summa);
+  });
+
+  // 4) Har bir BUCKET uchun qancha qolgan (kerak - tolangan)
+  // Bir kategoriyada bir nechta bucket bo'lsa, proportional taqsimlaymiz
+  // Masalan: Foyda = rahbar_7 + rahbar_14 + rahbar_21 + rahbar_28 = 80 mln
+  // Agar 20 mln to'langan bo'lsa, har biriga 5 mln to'langan deb hisoblaymiz
+  const kategoriyaJami: Record<string, number> = {};
+  BUCKETS.forEach(function(b) {
+    if (!b.chiqimTuri) return;
+    kategoriyaJami[b.chiqimTuri] = (kategoriyaJami[b.chiqimTuri] || 0) + b.summa;
+  });
+
+  // 5) Items yaratish
   const items: TaqsimItem[] = BUCKETS.map(function(b) {
     let targetSana: Date;
     if (b.kun === 31) {
@@ -91,63 +126,96 @@ function taqsimla(rows: Row[], bugun: Date): TaqsimResult {
         : new Date(bugun.getFullYear(), bugun.getMonth() + 1, b.kun);
     }
     const kunQoldi = Math.max(1, Math.ceil((targetSana.getTime() - bugun.getTime()) / 86400000));
-    return { id: b.id, nomi: b.nomi, kerak: b.summa, toplangan: 0, foiz: 0, targetKun: b.kun, kunQoldi: kunQoldi, yetarli: false };
+
+    // Bu bucket uchun qancha to'langan (kategoriya bo'yicha proportional)
+    let tolanganReal = 0;
+    if (b.chiqimTuri && kategoriaTolangan[b.chiqimTuri]) {
+      const katJami = kategoriyaJami[b.chiqimTuri] || b.summa;
+      const katTolangan = kategoriaTolangan[b.chiqimTuri] || 0;
+      // Bu bucket ning ulushi
+      const ulush = b.summa / katJami;
+      tolanganReal = Math.min(b.summa, katTolangan * ulush);
+    }
+
+    const qoldi = Math.max(0, b.summa - tolanganReal);
+    const tolanganBool = tolanganReal >= b.summa - 1000;
+
+    return {
+      id: b.id, nomi: b.nomi, kerak: b.summa,
+      tolangan: tolanganReal, qoldi: qoldi,
+      toplangan: 0, foiz: 0,
+      targetKun: b.kun, kunQoldi: kunQoldi,
+      yetarli: false, tolanganReal: tolanganBool,
+      hasDate: b.hasDate,
+    };
   });
 
-  // Sana bo'yicha saralash (eng yaqin birinchi)
-  const sorted = items.slice().sort(function(a, b) { return a.kunQoldi - b.kunQoldi; });
+  // 6) Kassani taqsimlash
+  // 12% -> aniq sanasi yo'q xarajatlar (proportional summaga)
+  // 88% -> aniq sanali xarajatlar:
+  //   85% eng yaqin (qoldi > 0 bo'lgan) xarajatga
+  //   15% qolgan sanali xarajatlarga (proportional)
 
-  // LOGIKA:
-  // 70% kassa -> birinchi 4 xarajatga (ichida: eng yaqin eng ko'p oladi - 1/kunQoldi vazni)
-  // 30% kassa -> qolgan barcha xarajatlarga (summaga qarab %)
-  // Agar birinchi 4 dan biri to'lsa -> uning ulushi keyingi 4 ga o'tadi
+  const kassaBezDate = kassa * 0.12;
+  const kassaWithDate = kassa * 0.88;
 
-  const kassa70 = kassa * 0.70;
-  const kassa30 = kassa * 0.30;
-
-  // Birinchi 4 ga taqsimlash - vazn: summa / kunQoldi (shoshilinch + katta = ko'proq)
-  const top4 = sorted.slice(0, 4);
-  const top4Vazn = top4.map(function(i) {
-    return { id: i.id, vazn: i.kerak / Math.max(1, i.kunQoldi) };
-  });
-  const top4JamiVazn = top4Vazn.reduce(function(s, v) { return s + v.vazn; }, 0);
-
-  let top4Qolgan = kassa70;
-  if (top4JamiVazn > 0) {
-    top4Vazn.forEach(function(v) {
-      const item = items.find(function(i) { return i.id === v.id; });
-      if (!item) return;
-      const ulush = kassa70 * (v.vazn / top4JamiVazn);
-      item.toplangan = Math.min(ulush, item.kerak);
-      top4Qolgan -= item.toplangan;
+  // Sanasiz xarajatlar
+  const bezDateItems = items.filter(function(i) { return !i.hasDate && i.qoldi > 0; });
+  const bezDateJami = bezDateItems.reduce(function(s, i) { return s + i.kerak; }, 0);
+  if (bezDateJami > 0) {
+    bezDateItems.forEach(function(item) {
+      const ulush = item.kerak / bezDateJami;
+      item.toplangan = Math.min(kassaBezDate * ulush, item.qoldi);
     });
   }
 
-  // Agar birinchi 4 dan biror biri to'liq yopilsa, ortiqcha pul keyingi xarajatlarga o'tadi
-  // top4Qolgan manfiy bo'lishi mumkin (agar to'liq to'lsa) - buni qolgan30 ga qo'shamiz
-  const qolganBudjet = kassa30 + Math.max(0, top4Qolgan);
+  // Sanali xarajatlar - sana bo'yicha sort
+  const withDateItems = items
+    .filter(function(i) { return i.hasDate && i.qoldi > 0; })
+    .sort(function(a, b) { return a.kunQoldi - b.kunQoldi; });
 
-  // Qolgan 13 xarajatga summaga qarab %
-  const qolgan13 = sorted.slice(4);
-  const qolgan13Jami = qolgan13.reduce(function(s, i) { return s + i.kerak; }, 0);
-  if (qolgan13Jami > 0 && qolganBudjet > 0) {
-    qolgan13.forEach(function(sortedItem) {
-      const item = items.find(function(i) { return i.id === sortedItem.id; });
-      if (!item) return;
-      const foizUlush = item.kerak / qolgan13Jami;
-      item.toplangan += Math.min(qolganBudjet * foizUlush, item.kerak - item.toplangan);
-    });
+  if (withDateItems.length > 0) {
+    // Eng yaqin xarajat 85% oladi
+    const birinchi = withDateItems[0];
+    birinchi.toplangan = Math.min(kassaWithDate * 0.85, birinchi.qoldi);
+
+    // Qolgan 15% ni boshqalarga proportional
+    const qolganlar = withDateItems.slice(1);
+    if (qolganlar.length > 0) {
+      const qolganJami = qolganlar.reduce(function(s, i) { return s + i.qoldi; }, 0);
+      const qolganBudjet = kassaWithDate * 0.15;
+      if (qolganJami > 0) {
+        qolganlar.forEach(function(item) {
+          const ulush = item.qoldi / qolganJami;
+          item.toplangan = Math.min(qolganBudjet * ulush, item.qoldi);
+        });
+      }
+    }
   }
 
+  // 7) Foiz hisoblash - tolanganReal + toplangan (kassa zaxira)
   items.forEach(function(i) {
-    i.foiz = Math.min(100, Math.round((i.toplangan / i.kerak) * 100));
-    i.yetarli = i.toplangan >= i.kerak - 1;
+    const jami = i.tolangan + i.toplangan;
+    i.foiz = Math.min(100, Math.round((jami / i.kerak) * 100));
+    i.yetarli = i.tolanganReal; // Faqat real to'langan bo'lsa yetarli
   });
-  items.sort(function(a, b) { return a.kunQoldi - b.kunQoldi; });
+
+  // 8) Sort: avval sanali (kun bo'yicha), keyin sanasiz
+  items.sort(function(a, b) {
+    if (a.hasDate && !b.hasDate) return -1;
+    if (!a.hasDate && b.hasDate) return 1;
+    if (a.hasDate && b.hasDate) return a.kunQoldi - b.kunQoldi;
+    return 0;
+  });
 
   const jamiToplangan = items.reduce(function(s, i) { return s + i.toplangan; }, 0);
 
-  return { items: items, kunlikKirim: kunlikKirim, tahlilOylar: tahlilOylar, qolgan: Math.max(0, kassa - jamiToplangan) };
+  return {
+    items: items,
+    kunlikKirim: kunlikKirim,
+    tahlilOylar: tahlilOylar,
+    qolgan: Math.max(0, kassa - jamiToplangan),
+  };
 }
 
 const fmt = (n: number) => Math.round(Math.abs(n)).toLocaleString("ru-RU") + " so'm";
@@ -188,7 +256,7 @@ function formatSummaInput(val: string): string {
 }
 
 type Period = "kun" | "hafta" | "oy" | "barchasi";
-interface Row { sana: string; ism: string; filial: string; turi: string; summa: number; kirimChiqim: string; izoh: string; }
+interface Row { sana: string; ism: string; filial: string; turi: string; summa: number; kirimChiqim: string; izoh: string; chiqimTuri: string; }
 interface RejadagiRow { nomi: string; sana: string; summa: number; status: string; izoh: string; }
 
 function Toggle({ left, right, value, onChange, leftColor, rightColor }: {
@@ -245,7 +313,6 @@ export function Moliya() {
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [tolovLoading, setTolovLoading] = useState<number | null>(null);
-
   const [taqsimOpen, setTaqsimOpen] = useState(false);
   const [tahlilOpen, setTahlilOpen] = useState(false);
 
@@ -260,6 +327,7 @@ export function Moliya() {
           return {
             sana: r[0] || "", ism: r[1] || "", filial: r[2] || "", turi: r[4] || "",
             summa: parseSumma(r[5]), kirimChiqim: r[6] || "", izoh: r[7] || "",
+            chiqimTuri: r[8] || "",
           };
         }));
       })
@@ -379,7 +447,7 @@ export function Moliya() {
 
   const taqsim = taqsimla(rows, now);
   const yetarliSon = taqsim.items.filter(function(i) { return i.yetarli; }).length;
-  const xatarliSon = taqsim.items.filter(function(i) { return !i.yetarli && i.kunQoldi <= 3; }).length;
+  const xatarliSon = taqsim.items.filter(function(i) { return !i.yetarli && i.hasDate && i.kunQoldi <= 3; }).length;
 
   const tableFiltered = periodFiltered.filter(function(r) {
     if (filterKirim === "Kirim" && r.summa < 0) return false;
@@ -566,8 +634,9 @@ export function Moliya() {
           <div className="mx-5 mb-3 p-4 rounded-xl border border-blue-200 bg-blue-50 text-xs text-blue-900">
             <p className="font-semibold mb-2">Nima asosida taqsimlanyapti?</p>
             <p className="mb-2">Sistema {taqsim.tahlilOylar.join(" va ")} oylaridagi kirimlarni tahlil qildi. Kunlik ortacha kirim: {fmt(taqsim.kunlikKirim)}.</p>
-            <p className="mb-2">Kassaning 70% eng yaqin 4 xarajatga (shoshilinchlik + summa asosida), 30% qolgan barcha xarajatlarga (summa %) taqsimlanadi. Eng yaqin xarajat eng ko'p ulush oladi.</p>
-            <p className="text-blue-700">Bu prognoz hisobi — kassaga yangi pul tushganda avtomatik yangilanadi.</p>
+            <p className="mb-2">Kassaning 12% aniq sanasi yo'q xarajatlarga (Soliq, Marketing, Ofis, AI, Ehson, Zaxira) teng taqsimlanadi. Qolgan 88% dan: 85% eng yaqin xarajatga, 15% qolgan sanali xarajatlarga.</p>
+            <p className="mb-2">To'langan xarajatlar Google Sheets dagi Chiqim Turi ustuniga qarab aniqlanadi.</p>
+            <p className="text-blue-700">Yashil belgi = haqiqatda to'langan. Kulrang belgi = kassa zaxirasi bor lekin hali to'lanmagan.</p>
           </div>
         )}
 
@@ -575,24 +644,45 @@ export function Moliya() {
           <div className="px-5 pb-5">
             <div className="space-y-2">
               {taqsim.items.map(function(v) {
+                const realFoiz = Math.min(100, Math.round((v.tolangan / v.kerak) * 100));
+                const zaxiraFoiz = v.foiz - realFoiz;
                 return (
-                  <div key={v.id} className={cn("p-3 rounded-xl border", v.yetarli ? "border-emerald-200 bg-emerald-50" : v.kunQoldi <= 3 ? "border-red-200 bg-red-50" : "border-border bg-background")}>
+                  <div key={v.id} className={cn("p-3 rounded-xl border",
+                    v.tolanganReal ? "border-emerald-200 bg-emerald-50" :
+                    v.hasDate && v.kunQoldi <= 3 ? "border-red-200 bg-red-50" :
+                    "border-border bg-background")}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        {v.yetarli ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" /> : <Clock className={cn("h-3.5 w-3.5 shrink-0", v.kunQoldi <= 3 ? "text-red-500" : "text-muted-foreground")} />}
+                        {v.tolanganReal
+                          ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          : <Clock className={cn("h-3.5 w-3.5 shrink-0", v.hasDate && v.kunQoldi <= 3 ? "text-red-500" : "text-muted-foreground")} />}
                         <span className="font-medium text-sm truncate">{v.nomi}</span>
+                        {v.tolanganReal && <span className="text-xs text-emerald-600 font-medium shrink-0">✓ To'landi</span>}
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                        {v.targetKun === 31 ? "Oy oxiri" : v.targetKun + "-kun"} · {v.kunQoldi} kun qoldi
+                        {v.hasDate ? (v.targetKun === 31 ? "Oy oxiri" : v.targetKun + "-kun") : "Oy davomida"}
+                        {v.hasDate ? " · " + v.kunQoldi + " kun qoldi" : ""}
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-secondary overflow-hidden mb-1">
-                      <div className={cn("h-full rounded-full transition-all", v.yetarli ? "bg-emerald-500" : v.kunQoldi <= 3 ? "bg-red-500" : "bg-primary")} style={{ width: v.foiz + "%" }} />
+                    <div className="h-1.5 rounded-full bg-secondary overflow-hidden mb-1 relative">
+                      <div className={cn("h-full rounded-full transition-all absolute left-0",
+                        v.tolanganReal ? "bg-emerald-500" : v.hasDate && v.kunQoldi <= 3 ? "bg-red-500" : "bg-primary")}
+                        style={{ width: realFoiz + "%" }} />
+                      {zaxiraFoiz > 0 && (
+                        <div className="h-full rounded-full transition-all absolute bg-primary/30"
+                          style={{ left: realFoiz + "%", width: zaxiraFoiz + "%" }} />
+                      )}
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="num text-muted-foreground">{fmtShort(v.toplangan)} / {fmtShort(v.kerak)}</span>
-                      <span className={cn("font-semibold", v.yetarli ? "text-emerald-600" : v.kunQoldi <= 3 ? "text-red-500" : "text-muted-foreground")}>
-                        {v.foiz}%{!v.yetarli ? " · " + fmtShort(v.kerak - v.toplangan) + " kerak" : " ✓"}
+                      <span className="num text-muted-foreground">
+                        {fmtShort(v.tolandan + v.toplangan)} / {fmtShort(v.kerak)}
+                        {v.tolandan > 0 && !v.tolanganReal ? " (" + fmtShort(v.tolandan) + " to'landi)" : ""}
+                      </span>
+                      <span className={cn("font-semibold",
+                        v.tolanganReal ? "text-emerald-600" :
+                        v.hasDate && v.kunQoldi <= 3 ? "text-red-500" :
+                        "text-muted-foreground")}>
+                        {v.foiz}%{!v.tolanganReal ? " · " + fmtShort(v.qoldi) + " kerak" : ""}
                       </span>
                     </div>
                   </div>
@@ -600,7 +690,7 @@ export function Moliya() {
               })}
             </div>
             <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
-              <span className="text-xs text-muted-foreground">Hammasi yopilsa qoladi</span>
+              <span className="text-xs text-muted-foreground">Kassada qolgan bo'sh pul</span>
               <span className={cn("num font-bold text-sm", taqsim.qolgan > 0 ? "text-emerald-600" : "text-muted-foreground")}>{fmt(taqsim.qolgan)}</span>
             </div>
           </div>
@@ -750,7 +840,7 @@ export function Moliya() {
             <div className="flex rounded-lg border border-border overflow-hidden text-sm font-medium">
               {["Barchasi", "Kirim", "Chiqim"].map(function(v) {
                 return (
-                  <button key={v} onClick={function() { setFilterKirim(v); }} className={cn("flex-1 py-2 px-2 transition border-r border-border last:border-0 text-xs", filterKirim === v ? (v === "Kirim" ? "bg-emerald-600 text-white" : v === "Chiqim" ? "bg-red-500 text-white" : "bg-primary text-primary-foreground") : "bg-background text-muted-foreground hover:text-foreground")}>{v}</button>
+                  <button key={v} onClick={function() { setFilterKirim(v); }} className={cn("flex-1 py-2 px-2 transition border-r border-border last:border-0 text:xs", filterKirim === v ? (v === "Kirim" ? "bg-emerald-600 text-white" : v === "Chiqim" ? "bg-red-500 text-white" : "bg-primary text-primary-foreground") : "bg-background text-muted-foreground hover:text-foreground")}>{v}</button>
                 );
               })}
             </div>
