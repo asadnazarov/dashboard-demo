@@ -1,57 +1,32 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
 import {
-  Phone, ArrowLeft, Loader2, AlertCircle,
-  Calendar, ThumbsUp, ThumbsDown,
-  MessageSquare, ChevronRight,
-  Lightbulb, Activity, Zap, CheckCircle, ShoppingBag
+  Phone, ArrowLeft, Loader2,
+  Calendar, ChevronRight, ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_ID  = "1eG0H0QrV5QyoeHelycZvROOSkg580h2HFLzjksfGJJQ";
-const SHEET_ID2 = "1StqPMbH2IWX_722F9MVp92gKOGitlTuUBVYrtZ7GUvI";
-const API_KEY   = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const RANGE1    = "%D0%9B%D0%B8%D1%81%D1%821!A:T";
-const RANGE2    = "%D0%9B%D0%B8%D1%81%D1%821!A:R";
+const CALLS_KEY = "demo:sotuv-analizi-calls";
+const SALES_KEY = "demo:sotuv-analizi-sales";
 
-const MANAGER_MAP: Record<string, string> = {
-  "1559": "Ziyoda",
-  "1615": "Rayhon",
-  "1621": "Rais",
-  "1619": "Jamshid",
-  "Shamsiddin": "Rais",
-};
-
-function resolveManager(raw: string): string {
-  const t = (raw ?? "").trim();
-  const mapped = MANAGER_MAP[t] ?? t;
-  return mapped.trim();
-}
+const MANAGERS = ["Ziyoda", "Rayhon", "Rais", "Jamshid"];
+const EHTIYOJ_OPTIONS = ["B toifa", "A toifa", "C toifa", "AKP toifa"];
+const LID_OPTIONS = ["issiq", "iliq", "sovuq"];
 
 interface CallRow {
   callId:      string;
-  managerId:   string;
   managerName: string;
   status:      string;
   date:        string;
-  transcript:  string;
   score:       number;
-  managerPct:  string;
-  clientPct:   string;
   lidSifati:   string;
   ehtiyoj:     string;
-  yakun:       string;
-  yaxshi:      string;
-  xatolar:     string;
-  tavsiya:     string;
-  dinamika:    string;
-  kritik:      string;
   clientPhone: string;
 }
 
 type SalesMap = Record<string, number>;
 type Period = "bugun" | "hafta" | "oy" | "barchasi";
-type View   = "managers" | "calls" | "detail";
+type View   = "managers" | "calls";
 
 function parseSheetDate(raw: string): Date | null {
   if (!raw) return null;
@@ -164,36 +139,74 @@ const PERIODS: { id: Period; label: string }[] = [
   { id: "barchasi", label: "Barchasi" },
 ];
 
-type CardColor = "blue" | "emerald" | "red" | "amber" | "purple";
+function fmtIso(d: Date): string {
+  return d.toISOString();
+}
 
-const cardStyles: Record<CardColor, string> = {
-  blue:    "border-blue-500/20    bg-blue-500/5",
-  emerald: "border-emerald-500/20 bg-emerald-500/5",
-  red:     "border-red-500/20     bg-red-500/5",
-  amber:   "border-amber-500/20   bg-amber-500/5",
-  purple:  "border-purple-500/20  bg-purple-500/5",
-};
+function fmtSaleDate(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
 
-const cardIconStyles: Record<CardColor, string> = {
-  blue:    "text-blue-500",
-  emerald: "text-emerald-500",
-  red:     "text-red-500",
-  amber:   "text-amber-500",
-  purple:  "text-purple-500",
-};
+function generateSeedCalls(): CallRow[] {
+  let seed = 23;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const now = new Date();
+  const rows: CallRow[] = [];
+  let callId = 1;
+  MANAGERS.forEach((manager) => {
+    const callsCount = 60 + Math.floor(rand() * 40);
+    for (let i = 0; i < callsCount; i++) {
+      const daysAgo = Math.floor(rand() * 45);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, 9 + Math.floor(rand() * 10), Math.floor(rand() * 60));
+      rows.push({
+        callId: String(callId++),
+        managerName: manager,
+        status: "done",
+        date: fmtIso(d),
+        score: 35 + Math.floor(rand() * 60),
+        lidSifati: LID_OPTIONS[Math.floor(rand() * LID_OPTIONS.length)],
+        ehtiyoj: EHTIYOJ_OPTIONS[Math.floor(rand() * EHTIYOJ_OPTIONS.length)],
+        clientPhone: `+998 9${Math.floor(rand() * 10)} ${String(100 + Math.floor(rand() * 900))} ${String(10 + Math.floor(rand() * 90))} ${String(10 + Math.floor(rand() * 90))}`,
+      });
+    }
+  });
+  return rows;
+}
 
-function InfoCard({ icon, title, color, children }: {
-  icon: React.ReactNode; title: string; color: CardColor; children: React.ReactNode;
-}) {
-  return (
-    <div className={cn("rounded-2xl border p-4", cardStyles[color])}>
-      <div className={cn("flex items-center gap-2 mb-2", cardIconStyles[color])}>
-        {icon}
-        <span className="text-sm font-semibold text-foreground">{title}</span>
-      </div>
-      <p className="text-sm text-foreground leading-relaxed">{children}</p>
-    </div>
-  );
+function generateSeedSales(): { name: string; date: string }[] {
+  let seed = 71;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const now = new Date();
+  const sales: { name: string; date: string }[] = [];
+  MANAGERS.forEach((manager) => {
+    const salesCount = 18 + Math.floor(rand() * 25);
+    for (let i = 0; i < salesCount; i++) {
+      const daysAgo = Math.floor(rand() * 45);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+      sales.push({ name: manager, date: fmtSaleDate(d) });
+    }
+  });
+  return sales;
+}
+
+function loadCalls(): CallRow[] {
+  try {
+    const raw = localStorage.getItem(CALLS_KEY);
+    if (raw) return JSON.parse(raw) as CallRow[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedCalls();
+  try { localStorage.setItem(CALLS_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
+function loadSales(): { name: string; date: string }[] {
+  try {
+    const raw = localStorage.getItem(SALES_KEY);
+    if (raw) return JSON.parse(raw) as { name: string; date: string }[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedSales();
+  try { localStorage.setItem(SALES_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
 }
 
 function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
@@ -212,78 +225,14 @@ export function SotuvAnalizi() {
   const [rows,     setRows]     = useState<CallRow[]>([]);
   const [allSales, setAllSales] = useState<{ name: string; date: Date }[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
   const [period,   setPeriod]   = useState<Period>("barchasi");
   const [view,     setView]     = useState<View>("managers");
   const [selMgr,   setSelMgr]   = useState<string | null>(null);
-  const [selCall,  setSelCall]  = useState<CallRow | null>(null);
 
   useEffect(() => {
-    const url1 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE1}?key=${API_KEY}`;
-    const url2 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID2}/values/${RANGE2}?key=${API_KEY}`;
-
-    Promise.all([fetch(url1), fetch(url2)])
-      .then(async ([r1, r2]) => {
-        if (!r1.ok) throw new Error(`API xatosi (1): ${r1.status}`);
-        if (!r2.ok) throw new Error(`API xatosi (2): ${r2.status}`);
-        return Promise.all([r1.json(), r2.json()]);
-      })
-      .then(([data1, data2]) => {
-        // ── Таблица 1: звонки ──
-        const all: string[][] = data1.values ?? [];
-        const parsed: CallRow[] = all
-          .slice(1)
-          .filter((row) => row[1])
-          .map((row) => ({
-            callId:      (row[0]  ?? "").trim(),
-            managerId:   (row[1]  ?? "").trim(),
-            managerName: resolveManager(row[1] ?? ""),
-            status:      (row[3]  ?? "").trim(),
-            date:        (row[4]  ?? "").trim(),
-            transcript:  (row[5]  ?? "").trim(),
-            clientPhone: (row[7]  ?? "").trim(),
-            score:       parseInt(row[9]  ?? "0") || 0,
-            managerPct:  (row[10] ?? "").trim(),
-            clientPct:   (row[11] ?? "").trim(),
-            lidSifati:   (row[12] ?? "").trim(),
-            ehtiyoj:     (row[13] ?? "").trim(),
-            yakun:       (row[14] ?? "").trim(),
-            yaxshi:      (row[15] ?? "").trim(),
-            xatolar:     (row[16] ?? "").trim(),
-            tavsiya:     (row[17] ?? "").trim(),
-            dinamika:    (row[18] ?? "").trim(),
-            kritik:      (row[19] ?? "").trim(),
-          }))
-          .filter((r) => r.managerName !== "" && r.status === "done");
-
-        setRows(parsed);
-
-        // ── Таблица 2: клиенты — колонка Q (индекс 16) = Hodim ──
-        const all2: string[][] = data2.values ?? [];
-        const sales: { name: string; date: Date }[] = [];
-
-        all2.slice(1).forEach((row) => {
-          if (!row[1]) return; // пустая строка
-
-          const hodimRaw = (row[17] ?? "").trim(); // Q = Hodim
-          const hodim    = resolveManager(hodimRaw); // Shamsiddin → Rais
-          const bekor    = (row[10] ?? "").trim().toLowerCase(); // K = Tolov Bekor
-          const dateRaw  = (row[4]  ?? "").trim();  // E = Dars kuni
-
-          if (!hodim) return;
-          if (bekor === "bekor") return; // возврат — не считаем
-          if (!dateRaw || dateRaw.toLowerCase().includes("avto")) return;
-
-          const date = parseSaleDate(dateRaw);
-          if (!date) return;
-
-          sales.push({ name: hodim, date });
-        });
-
-        setAllSales(sales);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    setRows(loadCalls());
+    setAllSales(loadSales().map((s) => ({ name: s.name, date: parseSaleDate(s.date)! })).filter((s) => s.date));
+    setLoading(false);
   }, []);
 
   const salesMap: SalesMap = {};
@@ -292,10 +241,8 @@ export function SotuvAnalizi() {
     salesMap[key] = (salesMap[key] ?? 0) + 1;
   });
 
-  function openManager(name: string) { setSelMgr(name); setSelCall(null); setView("calls"); }
-  function openCall(call: CallRow)   { setSelCall(call); setView("detail"); }
-  function backToManagers()          { setView("managers"); setSelMgr(null); setSelCall(null); }
-  function backToCalls()             { setView("calls"); setSelCall(null); }
+  function openManager(name: string) { setSelMgr(name); setView("calls"); }
+  function backToManagers()          { setView("managers"); setSelMgr(null); }
 
   const PeriodTabs = () => (
     <div className="flex flex-wrap gap-2 mb-6">
@@ -322,90 +269,7 @@ export function SotuvAnalizi() {
     </div>
   );
 
-  if (error) return (
-    <div className="flex items-center justify-center gap-3 py-32 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
-    </div>
-  );
-
   const filtered = filterByPeriod(rows, period);
-
-  if (view === "detail" && selCall) {
-    const c = selCall;
-    const displayPhone = c.clientPhone || `#${c.callId}`;
-    return (
-      <div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5 flex-wrap">
-          <button onClick={backToManagers} className="hover:text-foreground transition">Barcha menejerlar</button>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-          <button onClick={backToCalls} className="hover:text-foreground transition">{c.managerName}</button>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-          <span className="text-foreground font-medium">{displayPhone}</span>
-        </div>
-
-        <BackButton onClick={backToCalls} label={c.managerName} />
-        <Header title={displayPhone} subtitle={formatDate(c.date)} />
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div className={cn("rounded-2xl border p-4 text-center", scoreBg(c.score))}>
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Umumiy ball</div>
-            <div className={cn("text-3xl font-bold", scoreColor(c.score))}>{c.score || "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Menejer gapirdi</div>
-            <div className="text-2xl font-bold">{c.managerPct || "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mijoz gapirdi</div>
-            <div className="text-2xl font-bold">{c.clientPct || "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4 text-center flex flex-col items-center justify-center">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Lid sifati</div>
-            {c.lidSifati ? (
-              <span className={cn("px-3 py-1 rounded-full text-sm font-semibold border", lidColor(c.lidSifati))}>
-                {c.lidSifati}
-              </span>
-            ) : (
-              <div className="text-muted-foreground">—</div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          {c.ehtiyoj && (
-            <InfoCard icon={<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>} title="Ehtiyoj Aniqlash" color="blue">
-              {c.ehtiyoj}
-            </InfoCard>
-          )}
-          {c.yakun && <InfoCard icon={<CheckCircle className="h-4 w-4" />} title="Yakun" color="emerald">{c.yakun}</InfoCard>}
-          {c.yaxshi && <InfoCard icon={<ThumbsUp className="h-4 w-4" />} title="Yaxshi Narsalar" color="emerald">{c.yaxshi}</InfoCard>}
-          {c.xatolar && <InfoCard icon={<ThumbsDown className="h-4 w-4" />} title="Xatolar" color="red">{c.xatolar}</InfoCard>}
-          {c.tavsiya && <InfoCard icon={<Lightbulb className="h-4 w-4" />} title="Tavsiya" color="amber">{c.tavsiya}</InfoCard>}
-          {c.dinamika && <InfoCard icon={<Activity className="h-4 w-4" />} title="Suhbat Dinamikasi" color="purple">{c.dinamika}</InfoCard>}
-        </div>
-
-        {c.kritik && (
-          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-4 flex gap-3">
-            <Zap className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <div className="text-sm font-semibold text-red-600 mb-1">Kritik Signal</div>
-              <p className="text-sm leading-relaxed">{c.kritik}</p>
-            </div>
-          </div>
-        )}
-
-        {c.transcript && (
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-semibold">Transkript</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{c.transcript}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   if (view === "calls" && selMgr) {
     const mgrCalls = filterByPeriod(
@@ -454,21 +318,19 @@ export function SotuvAnalizi() {
               <h3 className="font-semibold">Zvonoklar</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Batafsil ko'rish uchun qatorga bosing</p>
             </div>
-            <div className="hidden sm:grid grid-cols-[1fr_120px_110px_90px_36px] gap-4 px-5 py-2.5 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <div className="hidden sm:grid grid-cols-[1fr_120px_110px_90px] gap-4 px-5 py-2.5 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               <div>Telefon / Sana</div>
               <div>Lid sifati</div>
               <div>Ehtiyoj</div>
               <div className="text-right">Ball</div>
-              <div></div>
             </div>
             <div className="divide-y divide-border">
               {mgrCalls.map((c) => {
                 const displayPhone = c.clientPhone || `#${c.callId}`;
                 return (
-                  <button
+                  <div
                     key={c.callId}
-                    onClick={() => openCall(c)}
-                    className="w-full text-left px-5 py-4 hover:bg-secondary/60 transition grid grid-cols-[1fr_120px_110px_90px_36px] gap-4 items-center"
+                    className="w-full text-left px-5 py-4 grid grid-cols-[1fr_120px_110px_90px] gap-4 items-center"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
@@ -504,8 +366,7 @@ export function SotuvAnalizi() {
                       <div className={cn("text-xl font-bold", scoreColor(c.score))}>{c.score || "—"}</div>
                       <div className="text-xs text-muted-foreground">ball</div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                  </div>
                 );
               })}
             </div>

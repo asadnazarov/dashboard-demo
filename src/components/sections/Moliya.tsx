@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { TrendingUp, Loader2, AlertCircle, Plus, X, CheckCircle2, Clock, CalendarClock, Globe, ChevronDown, ChevronUp, AlertTriangle, Info, Target } from "lucide-react";
+import { TrendingUp, Loader2, Plus, X, CheckCircle2, Clock, CalendarClock, Globe, ChevronDown, ChevronUp, AlertTriangle, Info, Target } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 
-const SHEET_ID = "1bLel0b3ULXWJ71Tgn_ynl5fvBrDIMZXo-CzeV9lnE3k";
-const SHEET_NAME = "moliya";
-const API_KEY = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const WEBHOOK_URL = "https://n8n.srv1215497.hstgr.cloud/webhook/moliya";
-const REJADAGI_SHEET_ID = "1pgMDVt57G6TFkHfSZDCLY8bH1R-39a1rVhQb_Be9-Kc";
-const REJADAGI_WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/rasxodqoshish";
-const ONLINE_WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/add";
+const ROWS_KEY = "demo:moliya";
+const REJADAGI_KEY = "demo:moliya_rejadagi";
 const UZ_MONTHS = ["Yan","Fev","Mar","Apr","May","Iyn","Iyl","Avg","Sen","Okt","Noy","Dek"];
 const EXPENSE_COLORS = ["hsl(222 47% 11%)","hsl(220 9% 46%)","hsl(230 70% 55%)","hsl(38 92% 50%)","hsl(220 13% 78%)"];
 const PRIORITY_KEY = "moliya_priority_id";
@@ -212,6 +207,76 @@ function taqsimla(rows: Row[], bugun: Date, priorityId: string | null): TaqsimRe
 const fmt = (n: number) => Math.round(Math.abs(n)).toLocaleString("ru-RU") + " so'm";
 const fmtFull = (n: number) => Math.round(Math.abs(n)).toLocaleString("ru-RU");
 
+function fmtSana(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function generateSeedRows(): Row[] {
+  const filiallar: ("Novza" | "Yunusobod")[] = ["Novza", "Yunusobod"];
+  const ismlar = ["Ali Karimov", "Dilnoza Yusupova", "Sardor Tursunov", "Madina Rashidova", "Jasur Komilov", "Sevara Nazarova", "Bekzod Ergashev", "Nilufar Saidova"];
+  const chiqimTurlari = ["Oylik", "Foyda", "Arenda Novza", "Arenda Yunusobod", "Mavsumiy sherik Ikrom aka", "Mavsumiy sherik doniyor aka", "Soliq", "Marketing", "Ofis harajat", "AI harajatlari", "Ehson/Xayriya"];
+  const rows: Row[] = [];
+  const now = new Date();
+  let seed = 17;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+  for (let i = 0; i < 70; i++) {
+    const daysAgo = Math.floor(rand() * 60);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+    const filial = filiallar[Math.floor(rand() * filiallar.length)];
+    const isKirim = rand() > 0.4;
+    if (isKirim) {
+      const summa = 800000 + Math.floor(rand() * 2500000);
+      rows.push({ sana: fmtSana(d), ism: ismlar[Math.floor(rand() * ismlar.length)], filial, turi: rand() > 0.5 ? "Naqd" : "Karta", summa, kirimChiqim: "Kirim", izoh: "O'quv kursi to'lovi", chiqimTuri: "" });
+    } else {
+      const turi = chiqimTurlari[Math.floor(rand() * chiqimTurlari.length)];
+      let summa: number;
+      if (turi === "Oylik" || turi.startsWith("Mavsumiy") || turi === "Foyda") summa = 4000000 + Math.floor(rand() * 16000000);
+      else if (turi.startsWith("Arenda")) summa = 8000000 + Math.floor(rand() * 10000000);
+      else summa = 500000 + Math.floor(rand() * 4000000);
+      rows.push({ sana: fmtSana(d), ism: "Kassa", filial, turi: "Naqd", summa: -summa, kirimChiqim: "Chiqim", izoh: "", chiqimTuri: turi });
+    }
+  }
+  return rows;
+}
+
+function generateSeedRejadagi(): RejadagiRow[] {
+  const now = new Date();
+  return [
+    { nomi: "Yangi avtomobil texnik ko'rikdan o'tkazish", sana: fmtSana(new Date(now.getFullYear(), now.getMonth(), 25)), summa: 3500000, status: "rejada", izoh: "2 avtomobil" },
+    { nomi: "Office mebel yangilash", sana: fmtSana(new Date(now.getFullYear(), now.getMonth() + 1, 5)), summa: 6200000, status: "rejada", izoh: "" },
+    { nomi: "Marketing — yangi reklama kampaniyasi", sana: fmtSana(new Date(now.getFullYear(), now.getMonth(), 30)), summa: 4000000, status: "rejada", izoh: "Instagram + Telegram" },
+  ];
+}
+
+function loadRows(): Row[] {
+  try {
+    const raw = localStorage.getItem(ROWS_KEY);
+    if (raw) return JSON.parse(raw) as Row[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedRows();
+  try { localStorage.setItem(ROWS_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
+function saveRows(rows: Row[]) {
+  try { localStorage.setItem(ROWS_KEY, JSON.stringify(rows)); } catch { /* ignore */ }
+}
+
+function loadRejadagi(): RejadagiRow[] {
+  try {
+    const raw = localStorage.getItem(REJADAGI_KEY);
+    if (raw) return JSON.parse(raw) as RejadagiRow[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedRejadagi();
+  try { localStorage.setItem(REJADAGI_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
+function saveRejadagi(rows: RejadagiRow[]) {
+  try { localStorage.setItem(REJADAGI_KEY, JSON.stringify(rows)); } catch { /* ignore */ }
+}
+
 function parseSumma(raw: string): number {
   const str = raw.trim();
   const isNegative = str.includes("-");
@@ -259,7 +324,6 @@ function Toggle({ left, right, value, onChange, leftColor, rightColor }: {
 export function Moliya() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>("barchasi");
   const [rejadagi, setRejadagi] = useState<RejadagiRow[]>([]);
   const [rejadagiLoading, setRejadagiLoading] = useState(true);
@@ -309,111 +373,64 @@ export function Moliya() {
     } catch {}
   }
 
-  const fetchData = () => {
-    setLoading(true);
-    fetch("https://sheets.googleapis.com/v4/spreadsheets/" + SHEET_ID + "/values/" + SHEET_NAME + "?key=" + API_KEY)
-      .then(function(res) { if (!res.ok) throw new Error("API xatosi: " + res.status); return res.json(); })
-      .then(function(data) {
-        const allRows = data.values as string[][];
-        const dataRows = allRows.slice(1);
-        setRows(dataRows.filter(function(r) { return r.length >= 6 && r[0] && r[5]; }).map(function(r) {
-          return {
-            sana: r[0] || "", ism: r[1] || "", filial: r[2] || "", turi: r[4] || "",
-            summa: parseSumma(r[5]), kirimChiqim: r[6] || "", izoh: r[7] || "",
-            chiqimTuri: r[8] || "",
-          };
-        }));
-      })
-      .catch(function(e) { setError(e.message); })
-      .finally(function() { setLoading(false); });
-  };
-
-  const fetchRejadagi = () => {
-    setRejadagiLoading(true);
-    fetch("https://sheets.googleapis.com/v4/spreadsheets/" + REJADAGI_SHEET_ID + "/values/Лист1?key=" + API_KEY)
-      .then(function(res) { if (!res.ok) throw new Error(); return res.json(); })
-      .then(function(data) {
-        const allRows = (data.values || []) as string[][];
-        const dataRows = allRows.slice(1);
-        setRejadagi(
-          dataRows
-            .filter(function(r) { return r.length >= 3 && r[0] && r[3] !== "tolov qilindi"; })
-            .map(function(r) {
-              return {
-                nomi: r[0] || "", sana: r[1] || "",
-                summa: parseFloat((r[2] || "").replace(/\s/g, "")) || 0,
-                status: r[3] || "rejada", izoh: r[4] || "",
-              };
-            })
-        );
-      })
-      .catch(function() {})
-      .finally(function() { setRejadagiLoading(false); });
-  };
-
-  useEffect(function() { fetchData(); fetchRejadagi(); }, []);
+  useEffect(function() {
+    setRows(loadRows());
+    setRejadagi(loadRejadagi());
+    setLoading(false);
+    setRejadagiLoading(false);
+  }, []);
 
   async function submitForm() {
     if (!formIsm || !formSumma) { setFormResult("Ism va summani kiriting"); return; }
     setFormLoading(true); setFormResult(null);
     const summaNum = parseInt(formSumma.replace(/\s/g, ""));
     const finalSumma = formKirim === "Chiqim" ? -summaNum : summaNum;
-    try {
-      await fetch(WEBHOOK_URL, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sana: inputToSheetDate(formSana), ism: formIsm, filial: formFilial, online_offline: formOnline, telefon: formTelefon, turi: formTuri, summa: finalSumma, kirim_chiqim: formKirim, izoh: formIzoh }),
-      });
+    setTimeout(function() {
+      const newRow: Row = { sana: inputToSheetDate(formSana), ism: formIsm, filial: formFilial, turi: formTuri, summa: finalSumma, kirimChiqim: formKirim, izoh: formIzoh, chiqimTuri: "" };
+      const updated = [...rows, newRow];
+      setRows(updated); saveRows(updated);
       setFormResult("Muvaffaqiyatli saqlandi!");
       setFormIsm(""); setFormSumma(""); setFormIzoh(""); setFormTelefon(""); setFormSana(todayInputFormat());
-      setTimeout(function() { fetchData(); }, 2000);
-    } catch { setFormResult("Xatolik yuz berdi"); }
-    finally { setFormLoading(false); }
+      setFormLoading(false);
+    }, 400);
   }
 
   async function submitRejadagi() {
     if (!rejNomi || !rejSumma) { setRejResult("Nomi va summani kiriting"); return; }
     setRejLoading(true); setRejResult(null);
-    try {
-      await fetch(REJADAGI_WEBHOOK, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add", nomi: rejNomi, sana: inputToSheetDate(rejSana), summa: parseInt(rejSumma.replace(/\s/g, "")), izoh: rejIzoh, status: "rejada" }),
-      });
+    setTimeout(function() {
+      const newItem: RejadagiRow = { nomi: rejNomi, sana: inputToSheetDate(rejSana), summa: parseInt(rejSumma.replace(/\s/g, "")), izoh: rejIzoh, status: "rejada" };
+      const updated = [...rejadagi, newItem];
+      setRejadagi(updated); saveRejadagi(updated);
       setRejResult("Saqlandi!");
       setRejNomi(""); setRejSumma(""); setRejIzoh(""); setRejSana(todayInputFormat());
-      setTimeout(function() { fetchRejadagi(); }, 2000);
-    } catch { setRejResult("Xatolik"); }
-    finally { setRejLoading(false); }
+      setRejLoading(false);
+    }, 400);
   }
 
   async function submitOnline() {
     if (!onlineIsm || !onlineSumma || !onlineTelefon) { setOnlineResult("Barcha maydonlarni toldiring"); return; }
     setOnlineLoading(true); setOnlineResult(null);
-    try {
-      await fetch(ONLINE_WEBHOOK, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ism: onlineIsm, telefon: onlineTelefon, summa: parseInt(onlineSumma.replace(/\s/g, "")), sana: inputToSheetDate(onlineSana) }),
-      });
+    setTimeout(function() {
+      const newRow: Row = { sana: inputToSheetDate(onlineSana), ism: onlineIsm, filial: "Novza", turi: "Online", summa: parseInt(onlineSumma.replace(/\s/g, "")), kirimChiqim: "Kirim", izoh: "Online to'lov", chiqimTuri: "" };
+      const updated = [...rows, newRow];
+      setRows(updated); saveRows(updated);
       setOnlineResult("Saqlandi!");
       setOnlineIsm(""); setOnlineTelefon(""); setOnlineSumma(""); setOnlineSana(todayInputFormat());
-      setTimeout(function() { fetchData(); }, 2000);
-    } catch { setOnlineResult("Xatolik yuz berdi"); }
-    finally { setOnlineLoading(false); }
+      setOnlineLoading(false);
+    }, 400);
   }
 
   async function tolovQilindi(item: RejadagiRow, index: number) {
     setTolovLoading(index);
-    try {
-      await fetch(REJADAGI_WEBHOOK, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "tolov_qilindi", nomi: item.nomi, sana: item.sana, summa: item.summa, izoh: item.izoh }),
-      });
-      setTimeout(function() { fetchRejadagi(); }, 2000);
-    } catch {}
-    finally { setTolovLoading(null); }
+    setTimeout(function() {
+      const updated = rejadagi.filter(function(_, i) { return i !== index; });
+      setRejadagi(updated); saveRejadagi(updated);
+      setTolovLoading(null);
+    }, 400);
   }
 
   if (loading) return <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda</span></div>;
-  if (error) return <div className="flex items-center justify-center h-64 gap-3 text-danger"><AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span></div>;
 
   const now = new Date();
   const periodFiltered = rows.filter(function(r) {

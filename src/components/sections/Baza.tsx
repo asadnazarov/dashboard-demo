@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
 import {
-  Loader2, AlertCircle, Plus, X,
-  Search
+  Plus, X,
+  Search, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_ID  = "1StqPMbH2IWX_722F9MVp92gKOGitlTuUBVYrtZ7GUvI";
-const API_KEY   = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const RANGE     = "%D0%9B%D0%B8%D1%81%D1%821!A:R";
-const WEBHOOK   = "https://n8n.srv1215497.hstgr.cloud/webhook/admin";
+const STORAGE_KEY = "demo:baza";
 
 const DEFAULT_HODIMLAR = [
   "Rayhon","Ziyoda","Jamshid","Dilshod",
@@ -101,6 +98,59 @@ function filterByPeriod(clients: Client[], period: Period): Client[] {
   });
 }
 
+const SEED_ISMLAR = [
+  "Aliyev Botir", "Karimova Nigora", "Yusupov Sardor", "Rashidova Madina",
+  "Tursunov Jahongir", "Ergasheva Malika", "Nematov Aziz", "Yoldasheva Sevara",
+  "Qosimov Bekzod", "Ahmedova Gulnora", "Saidov Farrux", "Mirzaeva Lola",
+  "Rustamov Davron", "Xolmatova Zuhra", "Ibragimov Shoxrux", "Nurmatova Kamola",
+  "Sultonov Otabek", "Abdullayeva Shahnoza", "Toshpulatov Jasur", "Yusupova Dilnoza",
+];
+
+function seedClients(): Client[] {
+  const filiallar = ["Novza", "Yunusobod"];
+  const statusOptions = ["", "", "", "bekor"];
+  return SEED_ISMLAR.map((ism, i) => {
+    const day = String(((i * 3) % 27) + 1).padStart(2, "0");
+    const month = String(((i % 6) + 1)).padStart(2, "0");
+    const tolov = 1500000 + (i % 5) * 200000;
+    const tolandi = i % 4 === 0 ? 0 : tolov - (i % 3) * 150000;
+    const qarzi = tolov - tolandi;
+    return {
+      rowIndex: i + 2,
+      nomer: String(i + 1),
+      ism,
+      telefon: `99890${String(1000000 + i * 13579).slice(0, 7)}`,
+      filial: filiallar[i % 2],
+      darsKuni: `${day}.${month}.2026`,
+      tolovKuni: `${day}.${month}.2026`,
+      darsVaqti: VAQTLAR[i % VAQTLAR.length],
+      tolov: formatSumma(String(tolov)),
+      tolandi: formatSumma(String(tolandi)),
+      qarzi: formatSumma(String(qarzi)),
+      tolovBekor: statusOptions[i % statusOptions.length],
+      nazariyS: i % 2 === 0 ? "O'tildi" : "",
+      nazariy: "",
+      amaliyS: i % 3 === 0 ? "O'tildi" : "",
+      amaliy: "",
+      hodim: DEFAULT_HODIMLAR[i % DEFAULT_HODIMLAR.length],
+    };
+  });
+}
+
+function loadClients(): Client[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  const seeded = seedClients();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+  return seeded;
+}
+
+function saveClients(clients: Client[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
+}
+
 function Toggle({ left, right, value, onChange }: {
   left: string; right: string; value: string; onChange: (v: string) => void;
 }) {
@@ -114,8 +164,6 @@ function Toggle({ left, right, value, onChange }: {
 
 export function Baza() {
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
   const [period,  setPeriod]  = useState<Period>("barchasi");
   const [search,  setSearch]  = useState("");
   const [filterFilial, setFilterFilial] = useState("Barchasi");
@@ -157,40 +205,7 @@ export function Baza() {
   const [editHodim,      setEditHodim]      = useState("");
   const [editTolovBekor, setEditTolovBekor] = useState(false);
 
-  const fetchData = () => {
-    setLoading(true);
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`)
-      .then(r => { if (!r.ok) throw new Error(`API xatosi: ${r.status}`); return r.json(); })
-      .then(data => {
-        const rows: string[][] = data.values ?? [];
-        const parsed: Client[] = rows.slice(1)
-          .filter(r => r.length >= 2 && r[1])
-          .map((r, i) => ({
-            rowIndex:   i + 2,
-            nomer:      r[0]  ?? "",
-            ism:        r[1]  ?? "",
-            telefon:    r[2]  ?? "",
-            filial:     r[3]  ?? "",
-            darsKuni:   r[4]  ?? "",
-            tolovKuni:  r[5]  ?? "",
-            darsVaqti:  r[6]  ?? "",
-            tolov:      r[7]  ?? "",
-            tolandi:    r[8]  ?? "",
-            qarzi:      r[9]  ?? "",
-            tolovBekor: r[10] ?? "",
-            nazariyS:   r[11] ?? "",
-            nazariy:    r[12] ?? "",
-            amaliyS:    r[13] ?? "",
-            amaliy:     r[14] ?? "",
-            hodim:      r[17] ?? "",
-          }));
-        setClients(parsed);
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { setClients(loadClients()); }, []);
 
   function openEdit(c: Client) {
     setEditClient(c);
@@ -211,66 +226,49 @@ export function Baza() {
   async function submitAdd() {
     if (!addIsm || !addTelefon) { setAddResult("❌ Ism va telefonni kiriting"); return; }
     setAddLoading(true); setAddResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:     "add",
-          ism:        addIsm,
-          telefon:    addTelefon,
-          filial:     addFilial,
-          dars_kuni:  toSheetDate(addDarsKuni),
-          tolov_kuni: toSheetDate(addTolovKuni),
-          dars_vaqti: addDarsVaqti,
-          tolov:      addTolov.replace(/\s/g, ""),
-          tolandi:    addTolandi.replace(/\s/g, ""),
-          qarzi:      addQarzi.replace(/\s/g, ""),
-          hodim:      addHodim,
-          online:     addOnline,
-        }),
-      });
+    setTimeout(() => {
+      const newClient: Client = {
+        rowIndex: clients.length + 2,
+        nomer: String(clients.length + 1),
+        ism: addIsm, telefon: addTelefon, filial: addFilial,
+        darsKuni: toSheetDate(addDarsKuni), tolovKuni: toSheetDate(addTolovKuni),
+        darsVaqti: addDarsVaqti,
+        tolov: formatSumma(addTolov.replace(/\s/g, "")),
+        tolandi: formatSumma(addTolandi.replace(/\s/g, "")),
+        qarzi: formatSumma(addQarzi.replace(/\s/g, "")),
+        tolovBekor: "", nazariyS: "", nazariy: "", amaliyS: "", amaliy: "",
+        hodim: addHodim,
+      };
+      const updated = [...clients, newClient];
+      setClients(updated); saveClients(updated);
       setAddResult("✅ Muvaffaqiyatli saqlandi!");
       setAddIsm(""); setAddTelefon(""); setAddTolov("");
       setAddTolandi(""); setAddQarzi("");
       setAddDarsKuni(todayInput()); setAddTolovKuni(todayInput());
-      setTimeout(() => fetchData(), 2000);
-    } catch { setAddResult("❌ Xatolik yuz berdi"); }
-    finally { setAddLoading(false); }
+      setAddLoading(false);
+    }, 400);
   }
 
   async function submitEdit() {
     if (!editClient) return;
     setEditLoading(true); setEditResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:  "change",
-          ism:     editClient.ism,
-          telefon: editClient.telefon,
-          row:     editClient.rowIndex,
-          changes: {
-            ism:         { old: editClient.ism,        new: editIsm },
-            telefon:     { old: editClient.telefon,    new: editTelefon },
-            filial:      { old: editClient.filial,     new: editFilial },
-            dars_kuni:   { old: editClient.darsKuni,   new: toSheetDate(editDarsKuni) },
-            tolov_kuni:  { old: editClient.tolovKuni,  new: toSheetDate(editTolovKuni) },
-            dars_vaqti:  { old: editClient.darsVaqti,  new: editDarsVaqti },
-            tolov:       { old: editClient.tolov,      new: editTolov.replace(/\s/g,"") },
-            tolandi:     { old: editClient.tolandi,    new: editTolandi.replace(/\s/g,"") },
-            qarzi:       { old: editClient.qarzi,      new: editQarzi.replace(/\s/g,"") },
-            hodim:       { old: editClient.hodim,      new: editHodim },
-            tolov_bekor: { old: editClient.tolovBekor, new: editTolovBekor ? "Bekor" : "" },
-          },
-        }),
+    setTimeout(() => {
+      const updated = clients.map(c => c.rowIndex !== editClient.rowIndex ? c : {
+        ...c,
+        ism: editIsm, telefon: editTelefon, filial: editFilial,
+        darsKuni: toSheetDate(editDarsKuni), tolovKuni: toSheetDate(editTolovKuni),
+        darsVaqti: editDarsVaqti,
+        tolov: formatSumma(editTolov.replace(/\s/g, "")),
+        tolandi: formatSumma(editTolandi.replace(/\s/g, "")),
+        qarzi: formatSumma(editQarzi.replace(/\s/g, "")),
+        hodim: editHodim,
+        tolovBekor: editTolovBekor ? "Bekor" : "",
       });
+      setClients(updated); saveClients(updated);
       setEditResult("✅ Saqlandi!");
       setEditClient(null);
-      setTimeout(() => fetchData(), 2000);
-    } catch { setEditResult("❌ Xatolik yuz berdi"); }
-    finally { setEditLoading(false); }
+      setEditLoading(false);
+    }, 400);
   }
 
   function saveNewHodim() {
@@ -293,18 +291,6 @@ export function Baza() {
     { id: "oy",       label: "Oy"       },
     { id: "barchasi", label: "Barchasi" },
   ];
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
-      <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
-    </div>
-  );
 
   const periodFiltered = filterByPeriod(clients, period);
   const displayed = periodFiltered.filter(c => {

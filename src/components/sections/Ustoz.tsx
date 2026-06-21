@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, AlertCircle, Search, Plus, X, Check, UserMinus } from "lucide-react";
+import { Loader2, Search, Plus, X, Check, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_DAVO = "14nKtubJjuMJhQ9NQO8ORIfFGYAbBVKYrKDZpB96vc6Q";
-const API_KEY    = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const RANGE_DAVO = "%D0%9B%D0%B8%D1%81%D1%821!A:I";
-const WEBHOOK    = "https://n8n.srv1215497.hstgr.cloud/webhook/davomat";
+const STORAGE_KEY = "demo:ustoz";
 
 const VAQTLAR = ["10:00","13:00","15:00","19:00","21:00"];
 
@@ -38,6 +35,81 @@ function sameDay(a: Date, b: Date) {
   return a.getDate() === b.getDate() &&
          a.getMonth() === b.getMonth() &&
          a.getFullYear() === b.getFullYear();
+}
+
+function dateMinusDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+}
+
+function datePlusDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+}
+
+const SEED_NAMES = [
+  "Aziz Karimov", "Madina Yusupova", "Jasur Tursunov", "Dilnoza Rashidova",
+  "Bekzod Yoldashev", "Nilufar Saidova", "Farrux Abdullayev", "Gulnora Ergasheva",
+  "Sherzod Mirzayev", "Zarina Nazarova", "Otabek Qosimov", "Shahnoza Ismoilova",
+  "Davron Xolmatov", "Mohira Tojiboyeva", "Sardor Aliyev", "Kamola Yusupova",
+  "Rustam Berdiyev", "Lobar Sodiqova", "Jahongir Norqulov", "Sevara Mamatova",
+];
+
+function buildSeedRows(): DavRow[] {
+  const filials = ["Novza", "Yunusobod"];
+  const rows: DavRow[] = [];
+  let rowIndex = 2;
+  SEED_NAMES.forEach((ism, idx) => {
+    const filial = filials[idx % 2];
+    const smena = VAQTLAR[idx % VAQTLAR.length];
+    const telefon = `+99890${String(1000000 + idx * 137).slice(0, 7)}`;
+    const darsBoshlanishSanasi = dateMinusDays(20 + idx);
+    const pravaOldi = idx % 7 === 0 ? "Oldi" : "";
+    const hasImtihon = idx % 3 === 0;
+    const imtihon = hasImtihon ? datePlusDays(idx % 3 === 0 ? 1 : 2) : "";
+
+    const daysAttended = 3 + (idx % 5);
+    for (let d = daysAttended; d >= 1; d--) {
+      const holat = (idx + d) % 4 === 0 ? "Yo'q" : "Bor";
+      rows.push({
+        rowIndex: rowIndex++,
+        ism,
+        telefon,
+        filial,
+        smena,
+        sana: dateMinusDays(d),
+        holat,
+        imtihon,
+        pravaOldi,
+        darsBoshlanishSanasi,
+      });
+    }
+    // Ensure at least one row exists even if daysAttended produced none for student identity
+    if (daysAttended === 0) {
+      rows.push({
+        rowIndex: rowIndex++,
+        ism, telefon, filial, smena,
+        sana: "", holat: "", imtihon, pravaOldi, darsBoshlanishSanasi,
+      });
+    }
+  });
+  return rows;
+}
+
+function loadSeed(): DavRow[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  const seeded = buildSeedRows();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch {}
+  return seeded;
+}
+
+function saveRows(rows: DavRow[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); } catch {}
 }
 
 interface DavRow {
@@ -80,7 +152,6 @@ function Toggle({ left, right, value, onChange }: {
 export function Ustoz() {
   const [allRows,  setAllRows]  = useState<DavRow[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
   const [tab,      setTab]      = useState<Tab>("davomat");
   const [davFilial, setDavFilial] = useState("Novza");
   const [search,   setSearch]   = useState("");
@@ -108,33 +179,10 @@ export function Ustoz() {
   const [showImtihon,   setShowImtihon]   = useState(false);
   const [imtihonFilter, setImtihonFilter] = useState("Ertaga");
 
-  const fetchAll = (silent = false) => {
-    if (!silent) setLoading(true);
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_DAVO}/values/${RANGE_DAVO}?key=${API_KEY}`)
-      .then(r => { if (!r.ok) throw new Error(`Xatolik: ${r.status}`); return r.json(); })
-      .then(data => {
-        const rows: string[][] = data.values ?? [];
-        const parsed: DavRow[] = rows.slice(1)
-          .filter(r => r[0])
-          .map((r, i) => ({
-            rowIndex:             i + 2,
-            ism:                  r[0] ?? "",
-            telefon:              r[1] ?? "",
-            filial:               r[2] ?? "",
-            smena:                r[3] ?? "",
-            sana:                 r[4] ?? "",
-            holat:                r[5] ?? "",
-            imtihon:              r[6] ?? "",
-            pravaOldi:            r[7] ?? "",
-            darsBoshlanishSanasi: r[8] ?? "",
-          }));
-        setAllRows(parsed);
-      })
-      .catch(e => setError(e.message))
-      .finally(() => { if (!silent) setLoading(false); });
-  };
-
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    setAllRows(loadSeed());
+    setLoading(false);
+  }, []);
 
   function buildStudents(rows: DavRow[]): Student[] {
     const map: Record<string, Student> = {};
@@ -173,30 +221,18 @@ export function Ustoz() {
   async function markDavomat(student: Student, holat: "Bor" | "Yo'q") {
     const key = student.telefon;
     setMarking(m => ({ ...m, [key]: true }));
-    const today     = todayStr();
-    const kunRaqami = student.rows.filter(r => r.sana).length + 1;
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:     "mark",
-          ism:        student.ism,
-          telefon:    student.telefon,
-          filial:     student.filial,
-          smena:      student.smena,
-          sana:       today,
-          holat,
-          kun_raqami: kunRaqami,
-        }),
-      });
-      const scrollY = window.scrollY;
-      setTimeout(() => {
-        fetchAll(true);
-        setTimeout(() => window.scrollTo(0, scrollY), 150);
-      }, 1500);
-    } catch {}
-    finally { setMarking(m => ({ ...m, [key]: false })); }
+    const today = todayStr();
+    setTimeout(() => {
+      const maxRowIndex = allRows.reduce((max, r) => Math.max(max, r.rowIndex), 1);
+      const newRow: DavRow = {
+        rowIndex: maxRowIndex + 1, ism: student.ism, telefon: student.telefon,
+        filial: student.filial, smena: student.smena, sana: today, holat,
+        imtihon: student.imtihon, pravaOldi: student.pravaOldi, darsBoshlanishSanasi: student.darsBoshlanishSanasi,
+      };
+      const updated = [...allRows, newRow];
+      setAllRows(updated); saveRows(updated);
+      setMarking(m => ({ ...m, [key]: false }));
+    }, 400);
   }
 
   function openEdit(student: Student) {
@@ -209,74 +245,44 @@ export function Ustoz() {
   async function submitEdit() {
     if (!editStudent) return;
     setEditLoading(true); setEditResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:     "edit_student",
-          ism:        editStudent.ism,
-          telefon:    editStudent.telefon,
-          imtihon:    toSheetDate(editImtihon),
-          prava_oldi: editPrava ? "Oldi" : "",
-        }),
+    setTimeout(() => {
+      const updated = allRows.map(r => r.telefon !== editStudent.telefon ? r : {
+        ...r, imtihon: toSheetDate(editImtihon), pravaOldi: editPrava ? "Oldi" : "",
       });
+      setAllRows(updated); saveRows(updated);
       setEditResult("✅ Saqlandi!");
       setEditStudent(null);
-      setTimeout(() => fetchAll(), 2000);
-    } catch { setEditResult("❌ Xatolik"); }
-    finally { setEditLoading(false); }
+      setEditLoading(false);
+    }, 400);
   }
 
   async function removeStudent(student: Student) {
     if (!confirm(`${student.ism} o'chirilsinmi?`)) return;
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:  "remove_student",
-          ism:     student.ism,
-          telefon: student.telefon,
-        }),
-      });
-      setTimeout(() => fetchAll(), 1500);
-    } catch {}
+    const updated = allRows.filter(r => r.telefon !== student.telefon);
+    setAllRows(updated); saveRows(updated);
   }
 
   async function submitAdd() {
     if (!addIsm || !addTel) { setAddResult("❌ Ism va telefonni kiriting"); return; }
     setAddLoading(true); setAddResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:                 "add_student",
-          ism:                    addIsm,
-          telefon:                addTel,
-          filial:                 addFilial,
-          smena:                  addSmena,
-          dars_kuni:              toSheetDate(addDars),
-          dars_boshlanish_sanasi: toSheetDate(addDars),
-        }),
-      });
+    setTimeout(() => {
+      const maxRowIndex = allRows.reduce((max, r) => Math.max(max, r.rowIndex), 1);
+      const newRow: DavRow = {
+        rowIndex: maxRowIndex + 1, ism: addIsm, telefon: addTel, filial: addFilial,
+        smena: addSmena, sana: "", holat: "", imtihon: "", pravaOldi: "",
+        darsBoshlanishSanasi: toSheetDate(addDars),
+      };
+      const updated = [...allRows, newRow];
+      setAllRows(updated); saveRows(updated);
       setAddResult("✅ Saqlandi!");
       setAddIsm(""); setAddTel(""); setAddDars(todayInput());
-      setTimeout(() => fetchAll(), 2000);
-    } catch { setAddResult("❌ Xatolik"); }
-    finally { setAddLoading(false); }
+      setAddLoading(false);
+    }, 400);
   }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
     </div>
   );
 

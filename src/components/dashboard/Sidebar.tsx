@@ -1,5 +1,4 @@
 import { Phone, Wallet, GraduationCap, Users, Search, Settings, LogOut, MessageSquare, TrendingDown, Wifi } from "lucide-react";
-import logo from "@/assets/logo.webp";
 import { cn } from "@/lib/utils";
 
 export type SectionId = "sotuv" | "moliya" | "moliyachiqim" | "oquvchilar" | "hodimlar" | "taklif" | "online";
@@ -23,9 +22,7 @@ interface Props {
 export function Sidebar({ active, onChange, onLogout }: Props) {
   return (
     <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-sidebar">
-      <div className="px-6 pt-6 pb-8 border-b border-border">
-        <img src={logo} alt="AVTOTEST7 logo" className="h-9 w-auto" />
-      </div>
+      <div className="px-6 pt-6 pb-8 border-b border-border h-[88px]" />
       <div className="px-4 pt-5">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -69,7 +66,7 @@ export function Sidebar({ active, onChange, onLogout }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium truncate">Egasi</div>
-            <div className="text-xs text-muted-foreground truncate">owner@avtotest7.uz</div>
+            <div className="text-xs text-muted-foreground truncate">owner@demo.uz</div>
           </div>
           <button className="h-8 w-8 rounded-md hover:bg-secondary flex items-center justify-center text-muted-foreground">
             <Settings className="h-4 w-4" />

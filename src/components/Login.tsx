@@ -1,5 +1,4 @@
 import { useState } from "react";
-import logo from "@/assets/logo.webp";
 import { Lock, LogIn, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +33,7 @@ export function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
-          <img src={logo} alt="AVTOTEST7" className="h-10" />
-        </div>
+        <div className="h-10 mb-8" />
 
         {!selectedRole ? (
           <div className="bg-card rounded-2xl border border-border overflow-hidden">

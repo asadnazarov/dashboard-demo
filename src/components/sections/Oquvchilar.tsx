@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, AlertCircle, Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_DAVO = "14nKtubJjuMJhQ9NQO8ORIfFGYAbBVKYrKDZpB96vc6Q";
-const API_KEY    = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
-const RANGE_DAVO = "%D0%9B%D0%B8%D1%81%D1%821!A:I";
+const STORAGE_KEY = "demo:oquvchilar";
 
 const VAQTLAR = ["10:00","13:00","15:00","19:00","21:00"];
 
@@ -45,10 +43,53 @@ interface Student {
 
 type Tab = "davomat" | "jadval";
 
+function fmtSana(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function generateSeedRows(): DavRow[] {
+  const ismlar = ["Akmal Yusupov", "Dilnoza Karimova", "Sardor Aliev", "Madina Toshpulatova", "Bekzod Rahimov", "Sevara Nurmatova", "Jasur Kamolov", "Nilufar Saidova", "Otabek Yoldoshev", "Gulbahor Mirzayeva", "Diyor Tashkentov", "Zarina Abdullayeva", "Shoxrux Nazarov", "Kamola Ergasheva", "Farrux Sodiqov", "Malika Ismoilova"];
+  const filiallar = ["Novza", "Yunusobod"];
+  let seed = 5;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const now = new Date();
+  const rows: DavRow[] = [];
+
+  ismlar.forEach((ism, idx) => {
+    const telefon = `+998 9${idx % 10} ${String(100 + idx * 7).slice(0,3)} ${String(10 + idx).padStart(2,"0")} ${String(20 + idx).padStart(2,"0")}`;
+    const filial = filiallar[idx % 2];
+    const smena = VAQTLAR[idx % VAQTLAR.length];
+    const darsStart = fmtSana(new Date(now.getFullYear(), now.getMonth() - 1, 5 + (idx % 10)));
+    const kunSoni = 8 + Math.floor(rand() * 10);
+    const pravaOldi = idx % 5 === 0 ? "Oldi" : "";
+    const imtihon = idx % 4 === 0 ? fmtSana(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1 + (idx % 3))) : "";
+
+    for (let k = 0; k < kunSoni; k++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (kunSoni - k) * 2);
+      rows.push({
+        ism, telefon, filial, smena,
+        sana: fmtSana(d),
+        holat: rand() > 0.18 ? "Bor" : "Yo'q",
+        imtihon, pravaOldi, darsBoshlanishSanasi: darsStart,
+      });
+    }
+  });
+  return rows;
+}
+
+function loadRows(): DavRow[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as DavRow[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedRows();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
 export function Oquvchilar() {
   const [allRows,  setAllRows]  = useState<DavRow[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
   const [tab,      setTab]      = useState<Tab>("davomat");
   const [search,   setSearch]   = useState("");
   const [filterSmena,  setFilterSmena]  = useState("Barchasi");
@@ -57,32 +98,10 @@ export function Oquvchilar() {
   const [showImtihon,   setShowImtihon]   = useState(false);
   const [imtihonFilter, setImtihonFilter] = useState("Ertaga");
 
-  const fetchAll = () => {
-    setLoading(true);
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_DAVO}/values/${RANGE_DAVO}?key=${API_KEY}`)
-      .then(r => { if (!r.ok) throw new Error(`Xatolik: ${r.status}`); return r.json(); })
-      .then(data => {
-        const rows: string[][] = data.values ?? [];
-        const parsed: DavRow[] = rows.slice(1)
-          .filter(r => r[0])
-          .map(r => ({
-            ism:                  r[0] ?? "",
-            telefon:              r[1] ?? "",
-            filial:               r[2] ?? "",
-            smena:                r[3] ?? "",
-            sana:                 r[4] ?? "",
-            holat:                r[5] ?? "",
-            imtihon:              r[6] ?? "",
-            pravaOldi:            r[7] ?? "",
-            darsBoshlanishSanasi: r[8] ?? "",
-          }));
-        setAllRows(parsed);
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    setAllRows(loadRows());
+    setLoading(false);
+  }, []);
 
   function buildStudents(rows: DavRow[]): Student[] {
     const map: Record<string, Student> = {};
@@ -121,12 +140,6 @@ export function Oquvchilar() {
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
     </div>
   );
 

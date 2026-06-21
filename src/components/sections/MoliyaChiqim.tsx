@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-const SHEET_ID  = "1bLel0b3ULXWJ71Tgn_ynl5fvBrDIMZXo-CzeV9lnE3k";
-const SHEET_NAME = "moliya";
-const API_KEY   = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
+const STORAGE_KEY = "demo:moliyachiqim";
 
 const CHIQIM_COLORS: Record<string, string> = {
   "Marketing":      "hsl(230 70% 55%)",
@@ -58,54 +55,57 @@ interface Row {
   chiqimTuri: string;
 }
 
-function parseSumma(raw: string): number {
-  const str = raw.trim();
-  const isNeg = str.includes("-");
-  const cleaned = str.replace(/-/g, "").replace(/[^\d\s,]/g, "").replace(/\s/g, "").replace(",", ".");
-  const num = parseFloat(cleaned) || 0;
-  return isNeg ? -num : num;
+function fmtSana(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function generateSeedRows(): Row[] {
+  const filiallar = ["Novza", "Yunusobod"];
+  const turlar = ["Marketing", "Suniy Intelekt", "Oylik", "Soliq", "Arenda", "Ofis harajat", "KPI", "Bonus"];
+  const rows: Row[] = [];
+  const now = new Date();
+  let seed = 42;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+  for (let i = 0; i < 75; i++) {
+    const daysAgo = Math.floor(rand() * 60);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+    const filial = filiallar[Math.floor(rand() * filiallar.length)];
+    const turi = turlar[Math.floor(rand() * turlar.length)];
+    let summa: number;
+    if (turi === "Oylik") summa = 4000000 + Math.floor(rand() * 8000000);
+    else if (turi === "Arenda") summa = 8000000 + Math.floor(rand() * 10000000);
+    else if (turi === "Marketing") summa = 500000 + Math.floor(rand() * 4000000);
+    else if (turi === "Soliq") summa = 1000000 + Math.floor(rand() * 4000000);
+    else if (turi === "Suniy Intelekt") summa = 200000 + Math.floor(rand() * 1500000);
+    else if (turi === "KPI") summa = 500000 + Math.floor(rand() * 2000000);
+    else if (turi === "Bonus") summa = 300000 + Math.floor(rand() * 1500000);
+    else summa = 100000 + Math.floor(rand() * 1000000);
+
+    rows.push({ sana: fmtSana(d), filial, summa: -summa, chiqimTuri: turi });
+  }
+  return rows;
+}
+
+function loadRows(): Row[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as Row[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedRows();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
 }
 
 export function MoliyaChiqim() {
   const [rows,    setRows]    = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
   const [from,    setFrom]    = useState(defaultFrom());
   const [to,      setTo]      = useState(defaultTo());
   const [filial,  setFilial]  = useState("Barchasi");
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`)
-      .then(r => { if (!r.ok) throw new Error(`API xatosi: ${r.status}`); return r.json(); })
-      .then(data => {
-        const all: string[][] = data.values ?? [];
-        const parsed: Row[] = all.slice(1)
-          .filter(r => r[0] && r[5] && r[6]?.toLowerCase().includes("chiq"))
-          .map(r => ({
-            sana:       r[0] ?? "",
-            filial:     r[2] ?? "",
-            summa:      parseSumma(r[5] ?? ""),
-            chiqimTuri: (r[8] ?? "").trim() || "Boshqa",
-          }))
-          .filter(r => r.summa < 0);
-        setRows(parsed);
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    setRows(loadRows());
   }, []);
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
-      <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
-    </div>
-  );
 
   const fromDate = inputToDate(from);
   const toDate   = inputToDate(to);

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, AlertCircle, Plus, X, Search, Trash2, Pencil } from "lucide-react";
+import { Loader2, Plus, X, Search, Trash2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SUPABASE_URL = "https://ziqzprosgzevkdfwyotl.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcXpwcm9zZ3pldmtkZnd5b3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNDAwMzAsImV4cCI6MjA4MTkxNjAzMH0.3-4COwffhK2ZU0kU-bnlCWPytsEzRxpMu3SkGg8m7BU";
-const WEBHOOK = "https://n8n.srv1215497.hstgr.cloud/webhook/admin";
+const STORAGE_KEY = "demo:online-dostup";
 
 function formatDate(raw: string): string {
   if (!raw) return "—";
@@ -33,6 +31,41 @@ interface Phone {
   last_seen: string | null;
 }
 
+function generateSeedPhones(): Phone[] {
+  const now = new Date();
+  let seed = 11;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const phones: Phone[] = [];
+  for (let i = 0; i < 14; i++) {
+    const createdDaysAgo = Math.floor(rand() * 50);
+    const created = new Date(now.getTime() - createdDaysAgo * 86400000);
+    const hasSeen = rand() > 0.3;
+    const lastSeen = hasSeen ? new Date(created.getTime() + Math.floor(rand() * createdDaysAgo) * 86400000) : null;
+    phones.push({
+      id: i + 1,
+      telefon_raqami: `99890${String(1100000 + i * 24681).slice(0, 7)}`,
+      created_at: created.toISOString(),
+      device_id: hasSeen ? `dev-${Math.floor(rand() * 1e9).toString(16)}` : null,
+      last_seen: lastSeen ? lastSeen.toISOString() : null,
+    });
+  }
+  return phones;
+}
+
+function loadPhones(): Phone[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as Phone[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedPhones();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
+function savePhones(phones: Phone[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(phones)); } catch { /* ignore */ }
+}
+
 function Toggle({ left, right, value, onChange }: {
   left: string; right: string; value: string; onChange: (v: string) => void;
 }) {
@@ -47,7 +80,6 @@ function Toggle({ left, right, value, onChange }: {
 export function OnlineDostup() {
   const [phones, setPhones]   = useState<Phone[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
   const [search,  setSearch]  = useState("");
 
   // Форма добавления
@@ -71,78 +103,49 @@ export function OnlineDostup() {
   const [deleteId,      setDeleteId]      = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const fetchPhones = () => {
-    setLoading(true);
-    fetch(`${SUPABASE_URL}/rest/v1/allowed_phones?select=*&order=created_at.desc`, {
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
-      },
-    })
-      .then(r => { if (!r.ok) throw new Error(`Xatolik: ${r.status}`); return r.json(); })
-      .then(data => setPhones(data))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchPhones(); }, []);
+  useEffect(() => {
+    setPhones(loadPhones());
+    setLoading(false);
+  }, []);
 
   async function submitAdd() {
     if (!addPhone) { setAddResult("❌ Telefon raqamini kiriting"); return; }
     setAddLoading(true); setAddResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:  "give_access",
-          ism:     addIsm,
-          telefon: addPhone,
-          summa:   addSumma.replace(/\s/g, ""),
-          sana:    addSana,
-          turi:    addTuri,
-          filial:  addFilial,
-        }),
-      });
+    setTimeout(() => {
+      const newPhone: Phone = {
+        id: (phones.reduce((max, p) => Math.max(max, p.id), 0)) + 1,
+        telefon_raqami: addPhone,
+        created_at: new Date(addSana).toISOString(),
+        device_id: null,
+        last_seen: null,
+      };
+      const updated = [newPhone, ...phones];
+      setPhones(updated); savePhones(updated);
       setAddResult("✅ Saqlandi!");
       setAddIsm(""); setAddPhone(""); setAddSumma(""); setAddSana(todayInput());
-      setTimeout(() => fetchPhones(), 2000);
-    } catch { setAddResult("❌ Xatolik yuz berdi"); }
-    finally { setAddLoading(false); }
+      setAddLoading(false);
+    }, 400);
   }
 
   async function submitEdit() {
     if (!editPhone || !editNewPhone) return;
     setEditLoading(true); setEditResult(null);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action:      "edit_phone",
-          id:          editPhone.id,
-          old_telefon: editPhone.telefon_raqami,
-          new_telefon: editNewPhone,
-        }),
-      });
+    setTimeout(() => {
+      const updated = phones.map(p => p.id === editPhone.id ? { ...p, telefon_raqami: editNewPhone } : p);
+      setPhones(updated); savePhones(updated);
       setEditResult("✅ Saqlandi!");
       setEditPhone(null);
-      setTimeout(() => fetchPhones(), 2000);
-    } catch { setEditResult("❌ Xatolik"); }
-    finally { setEditLoading(false); }
+      setEditLoading(false);
+    }, 400);
   }
 
   async function submitDelete(id: number) {
     setDeleteId(id); setDeleteLoading(true);
-    try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete_phone", id }),
-      });
-      setTimeout(() => fetchPhones(), 2000);
-    } catch {}
-    finally { setDeleteLoading(false); setDeleteId(null); }
+    setTimeout(() => {
+      const updated = phones.filter(p => p.id !== id);
+      setPhones(updated); savePhones(updated);
+      setDeleteLoading(false); setDeleteId(null);
+    }, 400);
   }
 
   const displayed = phones.filter(p =>
@@ -156,12 +159,6 @@ export function OnlineDostup() {
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
     </div>
   );
 

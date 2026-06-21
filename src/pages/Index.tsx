@@ -10,7 +10,6 @@ import { OnlineDostup } from "@/components/sections/OnlineDostup";
 import { Ustoz } from "@/components/sections/Ustoz";
 import { TaklifShikoyat } from "@/components/sections/TaklifShikoyat";
 import { Login } from "@/components/Login";
-import logo from "@/assets/logo.webp";
 import { AssistantChat } from "@/components/dashboard/AssistantChat";
 import { Phone, Wallet, GraduationCap, Users, LogOut, Database, Wifi, MessageSquare, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -70,7 +69,7 @@ const Index = () => {
         <Sidebar active={active} onChange={setActive} onLogout={handleLogout} />
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="lg:hidden flex items-center justify-between px-5 h-14 border-b border-border bg-card">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <div />
             <button onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground">
               <LogOut className="h-4 w-4" />
@@ -111,7 +110,7 @@ const Index = () => {
       <div className="min-h-screen flex bg-background">
         <div className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
           <div className="px-5 py-5 border-b border-border">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <div />
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             <button onClick={() => setAdminSection("baza")}
@@ -136,7 +135,7 @@ const Index = () => {
         </div>
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-card">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <div />
             <button onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground hover:bg-secondary/80 transition">
               <LogOut className="h-4 w-4" />
@@ -170,7 +169,7 @@ const Index = () => {
       <div className="min-h-screen flex bg-background">
         <div className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
           <div className="px-5 py-5 border-b border-border">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <div />
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             <button onClick={() => setUstozSection("davomat")}
@@ -195,7 +194,7 @@ const Index = () => {
         </div>
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center justify-between px-5 h-14 border-b border-border bg-card">
-            <img src={logo} alt="AVTOTEST7" className="h-7" />
+            <div />
             <button onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-secondary text-foreground hover:bg-secondary/80 transition">
               <LogOut className="h-4 w-4" />

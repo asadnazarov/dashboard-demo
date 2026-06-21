@@ -1,15 +1,74 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { Users, Clock, Award, Loader2, AlertCircle, Calculator } from "lucide-react";
+import { Users, Clock, Award, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_ID = "1AzPhbdZD5FaeSNgVjShNuJDygZElrdFkMzsauaBIscE";
-const SHEET_NAME = "Hodimlar ish vaqti";
-const API_KEY = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
+const STORAGE_KEY = "demo:hodimlar";
 
 interface HodimRow {
   ism: string; sana: string; kelish: string; ketish: string; filial: string; soat: string;
+}
+
+const ISMLAR = [
+  "Aziz Karimov", "Dilnoza Yusupova", "Bekzod Tursunov", "Madina Rashidova",
+  "Sardor Aliyev", "Nigora Sodiqova", "Jasur Mirzayev", "Kamola Ergasheva",
+  "Otabek Yoldashev", "Shahnoza Qosimova",
+];
+const FILIALLAR = ["Novza", "Yunusobod"];
+
+function fmtDate(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function randTime(baseH: number, spreadMin: number): string {
+  const h = baseH;
+  const m = Math.floor(Math.random() * spreadMin);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function diffSoat(kelish: string, ketish: string): string {
+  const [kh, km] = kelish.split(":").map(Number);
+  const [th, tm] = ketish.split(":").map(Number);
+  let mins = (th * 60 + tm) - (kh * 60 + km);
+  if (mins < 0) mins += 24 * 60;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}ч ${m}м`;
+}
+
+function generateSeedRows(): HodimRow[] {
+  const rows: HodimRow[] = [];
+  const today = new Date();
+  for (let dayOffset = 0; dayOffset < 45; dayOffset++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - dayOffset);
+    if (d.getDay() === 0) continue; // skip Sunday
+    const sana = fmtDate(d);
+    ISMLAR.forEach((ism, idx) => {
+      // not every employee works every day
+      if (Math.random() < 0.15) return;
+      const filial = FILIALLAR[idx % 2];
+      const kelish = randTime(9, 30);
+      const ketish = randTime(18 + (idx % 2), 45);
+      rows.push({
+        ism, sana, kelish, ketish, filial,
+        soat: diffSoat(kelish, ketish),
+      });
+    });
+  }
+  return rows;
+}
+
+function loadSeed(): HodimRow[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore corrupt data, fall through to reseed
+  }
+  const seeded = generateSeedRows();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+  return seeded;
 }
 
 function parseMinutes(soat: string): number {
@@ -39,9 +98,7 @@ function todayStr(): string {
 type Period = "kun" | "hafta" | "oy" | "barchasi";
 
 export function Hodimlar() {
-  const [rows, setRows] = useState<HodimRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [rows, setRows] = useState<HodimRow[]>(() => loadSeed());
   const [period, setPeriod] = useState<Period>("kun");
   const [showCalc, setShowCalc] = useState(false);
   const [calcIsm, setCalcIsm] = useState("");
@@ -52,22 +109,8 @@ export function Hodimlar() {
   const [calcResult, setCalcResult] = useState<string | null>(null);
 
   useEffect(() => {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}?key=${API_KEY}`;
-    fetch(url)
-      .then((res) => { if (!res.ok) throw new Error(`API xatosi: ${res.status}`); return res.json(); })
-      .then((data) => {
-        const [, ...dataRows] = data.values as string[][];
-        setRows(dataRows.filter((r) => r.length >= 5 && r[0]).map((r) => ({
-          ism: r[0] ?? "", sana: r[1] ?? "", kelish: r[2] ?? "",
-          ketish: r[3] ?? "", filial: r[4] ?? "", soat: r[5] ?? "",
-        })));
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span></div>;
-  if (error) return <div className="flex items-center justify-center h-64 gap-3 text-danger"><AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span></div>;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  }, [rows]);
 
   const now = new Date();
   const filtered = rows.filter((r) => {

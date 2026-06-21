@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, AlertCircle, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SHEET_ID = "1xnLEN8Rxx-jk1KDMSVO4qUagdvvGdn0678shPpfKjFM";
-const API_KEY  = "AIzaSyB4kyYep05877BBpI9Rfv0SNcFhHVGBF5E";
+const TAKLIF_KEY = "demo:taklif-shikoyat:taklif";
+const SHIKOYAT_KEY = "demo:taklif-shikoyat:shikoyat";
 
 type Period = "bugun" | "hafta" | "oy" | "barchasi";
 type Tab = "taklif" | "shikoyat";
@@ -44,6 +44,44 @@ function filterByPeriod(rows: Row[], period: Period): Row[] {
   });
 }
 
+function fmtSana(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+const SEED_TAKLIF = [
+  "Mashina ichida konditsioner yaxshi ishlamayapti, almashtirsangiz yaxshi bo'lardi.",
+  "Instruktorlar juda tushunarli o'rgatadi, rahmat!",
+  "Online to'lov tizimini Click/Payme orqali ham qo'shsangiz qulay bo'lardi.",
+  "Dars jadvalini mobil ilovada ko'rsatsangiz juda yaxshi bo'lardi.",
+  "Yunusobod filialida kutish zonasiga ko'proq stul qo'ysangiz.",
+  "Nazariy darslarni video formatda ham bersangiz, takrorlash uchun qulay bo'lardi.",
+  "Sizlardan juda mamnunman, do'stlarimga tavsiya qilaman!",
+  "Imtihon kunlari haqida SMS orqali eslatma yuborsangiz yaxshi bo'lardi.",
+];
+
+const SEED_SHIKOYAT = [
+  "Bugungi darsim 20 daqiqa kechikib boshlandi, instruktor uzr so'radi lekin vaqtim ketdi.",
+  "Online to'lov qilganimdan keyin tizimda ko'rinmadi, operatorga qo'ng'iroq qilishim kerak bo'ldi.",
+  "Navza filialida parking joyi juda tor, mashina qo'yish qiyin.",
+  "Imtihon sanasi SMS bilan kelmadi, o'zim qo'ng'iroq qilib bilib oldim.",
+  "Bir necha marta operator telefon qo'tarmadi.",
+];
+
+function generateSeedRows(texts: string[]): Row[] {
+  const now = new Date();
+  return texts.map((text, i) => ({ text, sana: fmtSana(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 3 - 1)) }));
+}
+
+function loadRows(key: string, seedTexts: string[]): Row[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw) as Row[];
+  } catch { /* ignore */ }
+  const seeded = generateSeedRows(seedTexts);
+  try { localStorage.setItem(key, JSON.stringify(seeded)); } catch { /* ignore */ }
+  return seeded;
+}
+
 const PERIODS: { id: Period; label: string }[] = [
   { id: "bugun",    label: "Bugun"    },
   { id: "hafta",    label: "Hafta"    },
@@ -55,39 +93,18 @@ export function TaklifShikoyat() {
   const [takliflar,  setTakliflar]  = useState<Row[]>([]);
   const [shikoyatlar, setShikoyatlar] = useState<Row[]>([]);
   const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState<string | null>(null);
   const [period,     setPeriod]     = useState<Period>("barchasi");
   const [tab,        setTab]        = useState<Tab>("taklif");
 
   useEffect(() => {
-    setLoading(true);
-    const u1 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Taklif!A:B?key=${API_KEY}`;
-    const u2 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Shikoyat!A:B?key=${API_KEY}`;
-    Promise.all([fetch(u1), fetch(u2)])
-      .then(async ([r1, r2]) => {
-        if (!r1.ok) throw new Error(`Taklif xatosi: ${r1.status}`);
-        if (!r2.ok) throw new Error(`Shikoyat xatosi: ${r2.status}`);
-        return Promise.all([r1.json(), r2.json()]);
-      })
-      .then(([d1, d2]) => {
-        const t: Row[] = (d1.values ?? []).slice(1).filter((r: string[]) => r[0]).map((r: string[]) => ({ text: r[0] ?? "", sana: r[1] ?? "" }));
-        const s: Row[] = (d2.values ?? []).slice(1).filter((r: string[]) => r[0]).map((r: string[]) => ({ text: r[0] ?? "", sana: r[1] ?? "" }));
-        setTakliflar(t.reverse());
-        setShikoyatlar(s.reverse());
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    setTakliflar(loadRows(TAKLIF_KEY, SEED_TAKLIF));
+    setShikoyatlar(loadRows(SHIKOYAT_KEY, SEED_SHIKOYAT));
+    setLoading(false);
   }, []);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-red-500">
-      <AlertCircle className="h-5 w-5" /><span>Xatolik: {error}</span>
     </div>
   );
 

@@ -4,10 +4,44 @@ import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const WEBHOOK_URL = "https://n8n.srv1215497.hstgr.cloud/webhook/ai";
-
 interface Props {
   context: string;
+}
+
+const CANNED_REPLIES: Record<string, string[]> = {
+  "Sotuv Analizi": [
+    "Bugun jami 86 qo'ng'iroq qilindi, shulardan 32 tasi sotuvga aylandi — konversiya 37%.",
+    "Eng yaxshi natija ko'rsatgan menejer — Ziyoda, bugun 9 ta sotuv yopdi.",
+    "Haftalik trend ijobiy: sotuvlar o'tgan haftaga nisbatan 12% o'sgan.",
+  ],
+  "Moliya": [
+    "Joriy oyda sof foyda taxminan 76 mln so'm, marja ~38%.",
+    "Eng katta xarajat moddasi — oylik maoshlar, jami xarajatning 42%ini tashkil qiladi.",
+    "Novza filiali bu oy Yunusobodga nisbatan ko'proq daromad keltirdi.",
+  ],
+  "Moliya Chiqim Analizi": [
+    "Bu oy eng ko'p xarajat — ijara va oyliklarga ketgan.",
+    "Marketing xarajatlari o'tgan oyga nisbatan biroz oshgan.",
+  ],
+  "O'quvchilar": [
+    "Hozir faol o'quvchilar soni 24 ta, ulardan 6 tasi shu hafta imtihon topshiradi.",
+    "Davomat ko'rsatkichi o'rtacha 87% atrofida.",
+  ],
+  "Hodimlar": [
+    "Bugun barcha hodimlar ish boshlagan, o'rtacha samaradorlik 84%.",
+    "Eng yuqori samaradorlik — Ziyoda Karimova, 94%.",
+  ],
+  "Taklif va Shikoyatlar": [
+    "Bu hafta 3 ta taklif va 1 ta shikoyat tushgan, shikoyat hal qilindi.",
+  ],
+  "Online Dostup": [
+    "Hozir 14 ta telefon raqamiga onlayn ruxsat berilgan.",
+  ],
+};
+
+function getCannedReply(context: string): string {
+  const pool = CANNED_REPLIES[context] ?? ["Tushunarli, bu savol bo'yicha tegishli bo'limda batafsil ma'lumot mavjud."];
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 export function AssistantChat({ context }: Props) {
@@ -15,7 +49,7 @@ export function AssistantChat({ context }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: `Salom! Men AVTOTEST7 AI yordamchisiman. ${context} bo'limi bo'yicha savollaringizni bering.` },
+    { role: "assistant", content: `Salom! Men o'quv markazi AI yordamchisiman. ${context} bo'limi bo'yicha savollaringizni bering.` },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,28 +71,11 @@ export function AssistantChat({ context }: Props) {
     setInput("");
     setLoading(true);
 
-    try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, section: context, timestamp: new Date().toISOString() }),
-      });
-
-      let reply = "";
-      const ct = res.headers.get("content-type") ?? "";
-      if (ct.includes("application/json")) {
-        const data = await res.json();
-        reply = data.reply ?? data.response ?? data.message ?? data.output ?? data.text ?? JSON.stringify(data);
-      } else {
-        reply = await res.text();
-      }
-
-      setMessages((m) => [...m, { role: "assistant", content: reply || "..." }]);
-    } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", content: "Kechirasiz, ulanishda xatolik. Iltimos qayta urinib ko'ring." }]);
-    } finally {
+    setTimeout(() => {
+      const reply = getCannedReply(context);
+      setMessages((m) => [...m, { role: "assistant", content: reply }]);
       setLoading(false);
-    }
+    }, 600 + Math.random() * 400);
   };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -110,7 +127,7 @@ export function AssistantChat({ context }: Props) {
               A7
             </div>
             <div>
-              <div className="text-sm font-semibold leading-tight">AVTOTEST7 AI</div>
+              <div className="text-sm font-semibold leading-tight">AI Yordamchi</div>
               <div className="text-[11px] text-muted-foreground leading-tight flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 Onlayn
