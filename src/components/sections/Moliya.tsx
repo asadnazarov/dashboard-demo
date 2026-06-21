@@ -4,8 +4,8 @@ import { TrendingUp, Loader2, Plus, X, CheckCircle2, Clock, CalendarClock, Globe
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 
-const ROWS_KEY = "demo:moliya";
-const REJADAGI_KEY = "demo:moliya_rejadagi";
+const ROWS_KEY = "demo:moliya:v2";
+const REJADAGI_KEY = "demo:moliya_rejadagi:v2";
 const UZ_MONTHS = ["Yan","Fev","Mar","Apr","May","Iyn","Iyl","Avg","Sen","Okt","Noy","Dek"];
 const EXPENSE_COLORS = ["hsl(222 47% 11%)","hsl(220 9% 46%)","hsl(230 70% 55%)","hsl(38 92% 50%)","hsl(220 13% 78%)"];
 const PRIORITY_KEY = "moliya_priority_id";
@@ -214,28 +214,32 @@ function fmtSana(d: Date): string {
 function generateSeedRows(): Row[] {
   const filiallar: ("Novza" | "Yunusobod")[] = ["Novza", "Yunusobod"];
   const ismlar = ["Ali Karimov", "Dilnoza Yusupova", "Sardor Tursunov", "Madina Rashidova", "Jasur Komilov", "Sevara Nazarova", "Bekzod Ergashev", "Nilufar Saidova"];
-  const chiqimTurlari = ["Oylik", "Foyda", "Arenda Novza", "Arenda Yunusobod", "Mavsumiy sherik Ikrom aka", "Mavsumiy sherik doniyor aka", "Soliq", "Marketing", "Ofis harajat", "AI harajatlari", "Ehson/Xayriya"];
+  const chiqimTurlari = ["Oylik", "Marketing", "Ofis harajat", "AI harajatlari"];
   const rows: Row[] = [];
   const now = new Date();
   let seed = 17;
   const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
 
-  for (let i = 0; i < 70; i++) {
-    const daysAgo = Math.floor(rand() * 60);
+  // Har bir kun va har bir filial uchun daromad har doim xarajatdan ko'p bo'ladi —
+  // shu sababli har qanday davr filtrida (bugun/hafta/oy/barchasi) foyda doim musbat chiqadi.
+  for (let daysAgo = 59; daysAgo >= 0; daysAgo--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
-    const filial = filiallar[Math.floor(rand() * filiallar.length)];
-    const isKirim = rand() > 0.4;
-    if (isKirim) {
-      const summa = 800000 + Math.floor(rand() * 2500000);
-      rows.push({ sana: fmtSana(d), ism: ismlar[Math.floor(rand() * ismlar.length)], filial, turi: rand() > 0.5 ? "Naqd" : "Karta", summa, kirimChiqim: "Kirim", izoh: "O'quv kursi to'lovi", chiqimTuri: "" });
-    } else {
-      const turi = chiqimTurlari[Math.floor(rand() * chiqimTurlari.length)];
-      let summa: number;
-      if (turi === "Oylik" || turi.startsWith("Mavsumiy") || turi === "Foyda") summa = 4000000 + Math.floor(rand() * 16000000);
-      else if (turi.startsWith("Arenda")) summa = 8000000 + Math.floor(rand() * 10000000);
-      else summa = 500000 + Math.floor(rand() * 4000000);
-      rows.push({ sana: fmtSana(d), ism: "Kassa", filial, turi: "Naqd", summa: -summa, kirimChiqim: "Chiqim", izoh: "", chiqimTuri: turi });
-    }
+    filiallar.forEach((filial) => {
+      const dailyIncome = 1_800_000 + Math.floor(rand() * 1_400_000);
+      const splitCount = 1 + Math.floor(rand() * 2);
+      let remaining = dailyIncome;
+      for (let s = 0; s < splitCount; s++) {
+        const part = s === splitCount - 1 ? remaining : Math.floor(remaining * (0.4 + rand() * 0.3));
+        remaining -= part;
+        rows.push({ sana: fmtSana(d), ism: ismlar[Math.floor(rand() * ismlar.length)], filial, turi: rand() > 0.5 ? "Naqd" : "Karta", summa: part, kirimChiqim: "Kirim", izoh: "O'quv kursi to'lovi", chiqimTuri: "" });
+      }
+
+      if (rand() > 0.35) {
+        const turi = chiqimTurlari[Math.floor(rand() * chiqimTurlari.length)];
+        const dailyExpense = Math.floor(dailyIncome * (0.25 + rand() * 0.25));
+        rows.push({ sana: fmtSana(d), ism: "Kassa", filial, turi: "Naqd", summa: -dailyExpense, kirimChiqim: "Chiqim", izoh: "", chiqimTuri: turi });
+      }
+    });
   }
   return rows;
 }
