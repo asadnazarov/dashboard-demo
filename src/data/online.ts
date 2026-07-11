@@ -1,8 +1,8 @@
-// ── Online platform learner records ─────────────────────────────────────
-// Extends the "Online Dostup" phone-whitelist idea with real progress data
-// so the boss can see who actually studies and their results.
+// ── Online theory platform learner records (avtomaktab) ─────────────────
+// Online platform where students watch theory video-lessons (PDD) and take
+// tests. Lets the boss see who actually studies and their results.
 
-export type Lang = "Ingliz" | "Rus" | "Koreys" | "Arab";
+export type Category = "A toifa" | "B toifa" | "C toifa" | "BC toifa";
 
 export interface ModuleProgress {
   name: string;
@@ -20,8 +20,8 @@ export interface OnlineStudent {
   id: string;
   name: string;
   phone: string;
-  course: Lang;
-  level: string;
+  course: Category;      // haydovchilik toifasi
+  level: string;         // kurs formati (Standart / Intensiv / Ekstern)
   accessActive: boolean;
   grantedAt: string;         // berilgan sana (dd.mm.yyyy)
   lastSeen: string | null;   // oxirgi kirish
@@ -41,14 +41,14 @@ export interface OnlineStudent {
   activity: ActivityItem[];
 }
 
-export const LANGS: Lang[] = ["Ingliz", "Rus", "Koreys", "Arab"];
+export const CATEGORIES: Category[] = ["A toifa", "B toifa", "C toifa", "BC toifa"];
 
-// chart-friendly per-language accent (hsl)
-export const LANG_HSL: Record<Lang, string> = {
-  Ingliz: "hsl(230 70% 55%)",
-  Rus: "hsl(199 89% 48%)",
-  Koreys: "hsl(262 83% 62%)",
-  Arab: "hsl(38 92% 50%)",
+// chart-friendly per-category accent (hsl)
+export const CAT_HSL: Record<Category, string> = {
+  "A toifa": "hsl(199 89% 48%)",
+  "B toifa": "hsl(230 70% 55%)",
+  "C toifa": "hsl(38 92% 50%)",
+  "BC toifa": "hsl(262 83% 62%)",
 };
 
 export const WEEK_ACTIVITY = [
@@ -56,27 +56,31 @@ export const WEEK_ACTIVITY = [
   { day: "Pa", faol: 80 }, { day: "Ju", faol: 66 }, { day: "Sh", faol: 41 }, { day: "Ya", faol: 28 },
 ];
 
-const MODULE_SETS: Record<Lang, [string, number][]> = {
-  Ingliz: [["Grammar Foundation", 12], ["Vocabulary Builder", 10], ["Listening", 8], ["Speaking Practice", 10], ["IELTS Prep", 14]],
-  Rus:    [["Alifbo va talaffuz", 8], ["Grammatika 1", 12], ["Suhbat", 10], ["Matn tahlili", 9]],
-  Koreys: [["Hangul", 6], ["TOPIK 1 Grammar", 12], ["Tinglash", 8], ["Yozuv", 8]],
-  Arab:   [["Harflar", 6], ["Grammatika (Nahv)", 12], ["O'qish", 8], ["Suhbat", 9]],
+// Theory topic modules (PDD). Truck/combined categories get extra topics.
+const BASE_MODULES: [string, number][] = [
+  ["Yo'l harakati qoidalari", 18],
+  ["Yo'l belgilari", 12],
+  ["Yo'l nishonlari (razmetka)", 8],
+  ["Avtomobil tuzilishi", 10],
+  ["Tibbiy yordam", 6],
+  ["Nazariy test tayyorgarligi", 14],
+];
+const MODULE_SETS: Record<Category, [string, number][]> = {
+  "A toifa": BASE_MODULES,
+  "B toifa": BASE_MODULES,
+  "C toifa": [...BASE_MODULES, ["Yuk tashish qoidalari", 8]],
+  "BC toifa": [...BASE_MODULES, ["Yuk tashish qoidalari", 8]],
 };
 
-const LEVELS: Record<Lang, string[]> = {
-  Ingliz: ["Beginner", "Elementary", "Pre-Intermediate", "Intermediate", "Upper-Intermediate"],
-  Rus: ["Boshlang'ich", "O'rta", "Yuqori"],
-  Koreys: ["Boshlang'ich", "TOPIK 1", "TOPIK 2"],
-  Arab: ["Boshlang'ich", "O'rta"],
-};
+const LEVELS = ["Standart kurs", "Intensiv kurs", "Ekstern"];
 
-const NAMES: [string, Lang][] = [
-  ["Azizbek Tursunov", "Ingliz"], ["Madina Karimova", "Rus"], ["Sardor Yusupov", "Ingliz"],
-  ["Munisa Ergasheva", "Ingliz"], ["Javohir Nematov", "Koreys"], ["Sevinch Juraeva", "Ingliz"],
-  ["Dilshoda Mahmudova", "Ingliz"], ["Nodira Yakubova", "Ingliz"], ["Gulrux Jo'rayeva", "Rus"],
-  ["Temur Malikov", "Ingliz"], ["Shahnoza Ibrohimova", "Rus"], ["Bekzod Rahimov", "Arab"],
-  ["Oybek Qodirov", "Koreys"], ["Asilbek To'xtayev", "Koreys"], ["Zarina Usmonova", "Arab"],
-  ["Alisher Temirov", "Koreys"], ["Rahimjon Sodiqov", "Arab"], ["Nilufar Ahmedova", "Ingliz"],
+const NAMES: [string, Category][] = [
+  ["Azizbek Tursunov", "B toifa"], ["Madina Karimova", "B toifa"], ["Sardor Yusupov", "B toifa"],
+  ["Munisa Ergasheva", "A toifa"], ["Javohir Nematov", "C toifa"], ["Sevinch Juraeva", "B toifa"],
+  ["Dilshoda Mahmudova", "B toifa"], ["Nodira Yakubova", "A toifa"], ["Gulrux Jo'rayeva", "B toifa"],
+  ["Temur Malikov", "BC toifa"], ["Shahnoza Ibrohimova", "B toifa"], ["Bekzod Rahimov", "C toifa"],
+  ["Oybek Qodirov", "B toifa"], ["Asilbek To'xtayev", "A toifa"], ["Zarina Usmonova", "B toifa"],
+  ["Alisher Temirov", "BC toifa"], ["Rahimjon Sodiqov", "C toifa"], ["Nilufar Ahmedova", "B toifa"],
 ];
 
 function seededRand(seedStr: string) {
@@ -99,11 +103,10 @@ function grantedDate(days: number): string {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-function buildStudent(name: string, course: Lang, i: number): OnlineStudent {
+function buildStudent(name: string, course: Category, i: number): OnlineStudent {
   const r = seededRand(name + course);
   const set = MODULE_SETS[course];
-  const levels = LEVELS[course];
-  const level = levels[Math.floor(r() * levels.length)];
+  const level = LEVELS[Math.floor(r() * LEVELS.length)];
 
   const accessActive = r() > 0.12;
   const daysSince = !accessActive ? 999 : [0, 0, 1, 1, 2, 3, 5, 8, 14, 21][Math.floor(r() * 10)];
@@ -135,8 +138,8 @@ function buildStudent(name: string, course: Lang, i: number): OnlineStudent {
   const activity: ActivityItem[] = [];
   if (lastSeen) {
     activity.push({ text: `"${cur.name}" — ${curLessonNo}-dars ko'rildi`, at: lastSeen });
-    activity.push({ text: `Test topshirildi — ${50 + Math.floor(r() * 50)}%`, at: daysAgoDate(daysSince + 1 + Math.floor(r() * 3)) ?? "" });
-    activity.push({ text: `"${cur.name}" moduliga kirildi`, at: daysAgoDate(daysSince + 4 + Math.floor(r() * 4)) ?? "" });
+    activity.push({ text: `Nazariy test topshirildi — ${50 + Math.floor(r() * 50)}%`, at: daysAgoDate(daysSince + 1 + Math.floor(r() * 3)) ?? "" });
+    activity.push({ text: `"${cur.name}" mavzusiga kirildi`, at: daysAgoDate(daysSince + 4 + Math.floor(r() * 4)) ?? "" });
   }
   activity.push({ text: "Platformaga ruxsat berildi", at: grantedDate(grantedDays) });
 

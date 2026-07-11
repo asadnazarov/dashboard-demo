@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import {
-  SEED_ONLINE, WEEK_ACTIVITY, LANGS, LANG_HSL, statusOf, type OnlineStudent, type Lang,
+  SEED_ONLINE, WEEK_ACTIVITY, CATEGORIES, CAT_HSL, statusOf, type OnlineStudent, type Category,
 } from "@/data/online";
 
 const KEY = "demo:online-progress";
@@ -24,7 +24,7 @@ function loadOverrides(): Record<string, boolean> {
 export function OnlineDostup() {
   const [overrides, setOverrides] = useState<Record<string, boolean>>(loadOverrides);
   const [search, setSearch] = useState("");
-  const [course, setCourse] = useState<Lang | "all">("all");
+  const [course, setCourse] = useState<Category | "all">("all");
   const [status, setStatus] = useState<"all" | "faol" | "nofaol" | "bloklangan">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export function OnlineDostup() {
     const atRisk = students.filter((s) => s.accessActive && s.daysSince > 7).length;
     const buckets = [{ name: "0–25%", value: 0 }, { name: "25–50%", value: 0 }, { name: "50–75%", value: 0 }, { name: "75–100%", value: 0 }];
     students.forEach((s) => { buckets[Math.min(3, Math.floor(s.progressPct / 25))].value++; });
-    const byCourse = LANGS.map((l) => {
+    const byCourse = CATEGORIES.map((l) => {
       const g = students.filter((s) => s.course === l);
       return { name: l, value: g.length ? Math.round(g.reduce((a, s) => a + s.progressPct, 0) / g.length) : 0 };
     });
@@ -112,7 +112,7 @@ export function OnlineDostup() {
             </BarChart>
           </ResponsiveContainer>
         </Card>
-        <Card title="Kurs bo'yicha bajarilishi">
+        <Card title="Toifa bo'yicha bajarilishi">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={stats.byCourse} margin={{ left: -20, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -120,7 +120,7 @@ export function OnlineDostup() {
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} unit="%" />
               <Tooltip cursor={{ fill: "hsl(var(--secondary))" }} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v) => [`${v}%`, "o'rtacha"]} />
               <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={54}>
-                {stats.byCourse.map((c) => <Cell key={c.name} fill={LANG_HSL[c.name as Lang]} />)}
+                {stats.byCourse.map((c) => <Cell key={c.name} fill={CAT_HSL[c.name as Category]} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -155,8 +155,8 @@ export function OnlineDostup() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ism yoki telefon..."
               className="h-9 w-56 pl-9 pr-3 rounded-lg bg-secondary text-sm focus:bg-card focus:outline-none border border-transparent focus:border-border transition" />
           </div>
-          <FilterSelect value={course} onChange={(v) => setCourse(v as Lang | "all")}
-            options={[["all", "Barcha kurslar"], ...LANGS.map((l) => [l, l] as [string, string])]} />
+          <FilterSelect value={course} onChange={(v) => setCourse(v as Category | "all")}
+            options={[["all", "Barcha toifalar"], ...CATEGORIES.map((l) => [l, l] as [string, string])]} />
           <FilterSelect value={status} onChange={(v) => setStatus(v as typeof status)}
             options={[["all", "Barcha statuslar"], ["faol", "Faol"], ["nofaol", "Nofaol"], ["bloklangan", "Bloklangan"]]} />
         </div>
@@ -164,7 +164,7 @@ export function OnlineDostup() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider bg-secondary/50 border-b border-border">
-                <Th>O'quvchi</Th><Th>Kurs</Th><Th>Progress</Th><Th>Oxirgi kirish</Th><Th>Ball</Th><Th>Status</Th><Th>Ruxsat</Th>
+                <Th>O'quvchi</Th><Th>Toifa</Th><Th>Progress</Th><Th>Oxirgi kirish</Th><Th>Ball</Th><Th>Status</Th><Th>Ruxsat</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
