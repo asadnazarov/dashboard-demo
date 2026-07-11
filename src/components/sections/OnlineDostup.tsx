@@ -1,347 +1,336 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Header } from "@/components/dashboard/Header";
-import { Loader2, Plus, X, Search, Trash2, Pencil } from "lucide-react";
+import {
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from "recharts";
+import {
+  Users, Activity, TrendingUp, GraduationCap, AlertTriangle, Search, Clock, PlayCircle,
+  CheckCircle2, Flame, Timer, X, Smartphone, BookOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import {
+  SEED_ONLINE, WEEK_ACTIVITY, LANGS, LANG_HSL, statusOf, type OnlineStudent, type Lang,
+} from "@/data/online";
 
-const STORAGE_KEY = "demo:online-dostup";
+const KEY = "demo:online-progress";
+const BRAND = "hsl(230 70% 55%)";
+const EMERALD = "hsl(152 60% 40%)";
 
-function formatDate(raw: string): string {
-  if (!raw) return "—";
-  const d = new Date(raw);
-  return d.toLocaleString("ru-RU", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
-
-function formatSumma(val: string): string {
-  return val.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
-
-function todayInput(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-}
-
-interface Phone {
-  id: number;
-  telefon_raqami: string;
-  created_at: string;
-  device_id: string | null;
-  last_seen: string | null;
-}
-
-function generateSeedPhones(): Phone[] {
-  const now = new Date();
-  let seed = 11;
-  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  const phones: Phone[] = [];
-  for (let i = 0; i < 14; i++) {
-    const createdDaysAgo = Math.floor(rand() * 50);
-    const created = new Date(now.getTime() - createdDaysAgo * 86400000);
-    const hasSeen = rand() > 0.3;
-    const lastSeen = hasSeen ? new Date(created.getTime() + Math.floor(rand() * createdDaysAgo) * 86400000) : null;
-    phones.push({
-      id: i + 1,
-      telefon_raqami: `99890${String(1100000 + i * 24681).slice(0, 7)}`,
-      created_at: created.toISOString(),
-      device_id: hasSeen ? `dev-${Math.floor(rand() * 1e9).toString(16)}` : null,
-      last_seen: lastSeen ? lastSeen.toISOString() : null,
-    });
-  }
-  return phones;
-}
-
-function loadPhones(): Phone[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Phone[];
-  } catch { /* ignore */ }
-  const seeded = generateSeedPhones();
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch { /* ignore */ }
-  return seeded;
-}
-
-function savePhones(phones: Phone[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(phones)); } catch { /* ignore */ }
-}
-
-function Toggle({ left, right, value, onChange }: {
-  left: string; right: string; value: string; onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex rounded-lg border border-border overflow-hidden text-sm font-medium">
-      <button onClick={() => onChange(left)} className={cn("flex-1 py-2 px-3 transition", value === left ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground")}>{left}</button>
-      <button onClick={() => onChange(right)} className={cn("flex-1 py-2 px-3 transition border-l border-border", value === right ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground")}>{right}</button>
-    </div>
-  );
+function loadOverrides(): Record<string, boolean> {
+  try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; }
 }
 
 export function OnlineDostup() {
-  const [phones, setPhones]   = useState<Phone[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState("");
+  const [overrides, setOverrides] = useState<Record<string, boolean>>(loadOverrides);
+  const [search, setSearch] = useState("");
+  const [course, setCourse] = useState<Lang | "all">("all");
+  const [status, setStatus] = useState<"all" | "faol" | "nofaol" | "bloklangan">("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Форма добавления
-  const [showAdd,    setShowAdd]    = useState(false);
-  const [addIsm,     setAddIsm]     = useState("");
-  const [addPhone,   setAddPhone]   = useState("");
-  const [addSumma,   setAddSumma]   = useState("");
-  const [addSana,    setAddSana]    = useState(todayInput());
-  const [addTuri,    setAddTuri]    = useState("Offline");
-  const [addFilial,  setAddFilial]  = useState("Novza");
-  const [addLoading, setAddLoading] = useState(false);
-  const [addResult,  setAddResult]  = useState<string | null>(null);
-
-  // Редактирование
-  const [editPhone,    setEditPhone]    = useState<Phone | null>(null);
-  const [editNewPhone, setEditNewPhone] = useState("");
-  const [editLoading,  setEditLoading]  = useState(false);
-  const [editResult,   setEditResult]   = useState<string | null>(null);
-
-  // Удаление
-  const [deleteId,      setDeleteId]      = useState<number | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  useEffect(() => {
-    setPhones(loadPhones());
-    setLoading(false);
-  }, []);
-
-  async function submitAdd() {
-    if (!addPhone) { setAddResult("❌ Telefon raqamini kiriting"); return; }
-    setAddLoading(true); setAddResult(null);
-    setTimeout(() => {
-      const newPhone: Phone = {
-        id: (phones.reduce((max, p) => Math.max(max, p.id), 0)) + 1,
-        telefon_raqami: addPhone,
-        created_at: new Date(addSana).toISOString(),
-        device_id: null,
-        last_seen: null,
-      };
-      const updated = [newPhone, ...phones];
-      setPhones(updated); savePhones(updated);
-      setAddResult("✅ Saqlandi!");
-      setAddIsm(""); setAddPhone(""); setAddSumma(""); setAddSana(todayInput());
-      setAddLoading(false);
-    }, 400);
-  }
-
-  async function submitEdit() {
-    if (!editPhone || !editNewPhone) return;
-    setEditLoading(true); setEditResult(null);
-    setTimeout(() => {
-      const updated = phones.map(p => p.id === editPhone.id ? { ...p, telefon_raqami: editNewPhone } : p);
-      setPhones(updated); savePhones(updated);
-      setEditResult("✅ Saqlandi!");
-      setEditPhone(null);
-      setEditLoading(false);
-    }, 400);
-  }
-
-  async function submitDelete(id: number) {
-    setDeleteId(id); setDeleteLoading(true);
-    setTimeout(() => {
-      const updated = phones.filter(p => p.id !== id);
-      setPhones(updated); savePhones(updated);
-      setDeleteLoading(false); setDeleteId(null);
-    }, 400);
-  }
-
-  const displayed = phones.filter(p =>
-    search ? p.telefon_raqami.includes(search) : true
+  const students: OnlineStudent[] = useMemo(
+    () => SEED_ONLINE.map((s) => (s.id in overrides ? { ...s, accessActive: overrides[s.id] } : s)),
+    [overrides],
   );
 
-  const searchResult = search
-    ? phones.find(p => p.telefon_raqami.includes(search))
-    : null;
+  const toggleAccess = (id: string, val: boolean) => {
+    const next = { ...overrides, [id]: val };
+    setOverrides(next);
+    localStorage.setItem(KEY, JSON.stringify(next));
+  };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 gap-3 text-muted-foreground">
-      <Loader2 className="h-5 w-5 animate-spin" /><span>Yuklanmoqda…</span>
-    </div>
+  const stats = useMemo(() => {
+    const withAccess = students.filter((s) => s.accessActive);
+    const active7 = students.filter((s) => s.accessActive && s.daysSince <= 7).length;
+    const avgProgress = withAccess.length ? Math.round(withAccess.reduce((a, s) => a + s.progressPct, 0) / withAccess.length) : 0;
+    const scored = students.filter((s) => s.avgScore > 0);
+    const avgScore = scored.length ? Math.round(scored.reduce((a, s) => a + s.avgScore, 0) / scored.length) : 0;
+    const atRisk = students.filter((s) => s.accessActive && s.daysSince > 7).length;
+    const buckets = [{ name: "0–25%", value: 0 }, { name: "25–50%", value: 0 }, { name: "50–75%", value: 0 }, { name: "75–100%", value: 0 }];
+    students.forEach((s) => { buckets[Math.min(3, Math.floor(s.progressPct / 25))].value++; });
+    const byCourse = LANGS.map((l) => {
+      const g = students.filter((s) => s.course === l);
+      return { name: l, value: g.length ? Math.round(g.reduce((a, s) => a + s.progressPct, 0) / g.length) : 0 };
+    });
+    return { access: withAccess.length, active7, avgProgress, avgScore, atRisk, buckets, byCourse };
+  }, [students]);
+
+  const inactive = useMemo(
+    () => students.filter((s) => s.accessActive && s.daysSince > 7).sort((a, b) => b.daysSince - a.daysSince),
+    [students],
   );
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return students.filter((s) => {
+      if (course !== "all" && s.course !== course) return false;
+      if (status === "faol" && !(s.accessActive && s.daysSince <= 2)) return false;
+      if (status === "nofaol" && !(s.accessActive && s.daysSince > 7)) return false;
+      if (status === "bloklangan" && s.accessActive) return false;
+      if (q && !s.name.toLowerCase().includes(q) && !s.phone.includes(q)) return false;
+      return true;
+    });
+  }, [students, search, course, status]);
+
+  const selected = students.find((s) => s.id === selectedId) ?? null;
 
   return (
     <div>
-      <Header title="Online Dostup" subtitle="Ruxsat berilgan telefon raqamlari" />
+      <Header title="Online Dostup" subtitle="Onlayn platformada o'quvchilar nazorati va natijalari" />
 
-      {/* Кнопка добавить */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => { setShowAdd(!showAdd); setAddResult(null); }}
-          className={cn("px-4 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-2 ml-auto",
-            showAdd ? "bg-primary text-primary-foreground" : "bg-emerald-600 text-white hover:bg-emerald-700")}>
-          {showAdd ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showAdd ? "Yopish" : "Raqam qo'shish"}
-        </button>
+      {/* KPI */}
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 mb-6">
+        <Kpi icon={<Users className="h-5 w-5" />} label="Ruxsat berilgan" value={stats.access} />
+        <Kpi icon={<Activity className="h-5 w-5" />} label="Faol (7 kun)" value={stats.active7} />
+        <Kpi icon={<TrendingUp className="h-5 w-5" />} label="O'rtacha progress" value={`${stats.avgProgress}%`} />
+        <Kpi icon={<GraduationCap className="h-5 w-5" />} label="O'rtacha ball" value={stats.avgScore} />
+        <Kpi icon={<AlertTriangle className="h-5 w-5" />} label="Xavf ostida" value={stats.atRisk} danger={stats.atRisk > 0} />
       </div>
 
-      {/* Форма добавления */}
-      {showAdd && (
-        <div className="bg-card rounded-2xl border border-border p-5 mb-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Plus className="h-4 w-4" />Yangi raqam qo'shish
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Ism Familiya</label>
-              <input type="text" value={addIsm} onChange={e => setAddIsm(e.target.value)}
-                placeholder="Abdullayev Jasur"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Telefon raqami</label>
-              <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)}
-                placeholder="901234567"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">To'lov summasi (so'm)</label>
-              <input type="text" value={addSumma} onChange={e => setAddSumma(formatSumma(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">To'lov sanasi</label>
-              <input type="date" value={addSana} onChange={e => setAddSana(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Turi</label>
-              <Toggle left="Offline" right="Online" value={addTuri} onChange={setAddTuri} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Filial</label>
-              <Toggle left="Novza" right="Yunusobod" value={addFilial} onChange={setAddFilial} />
-            </div>
+      {/* charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+        <Card title="Haftalik faollik">
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={WEEK_ACTIVITY} margin={{ left: -20, right: 8, top: 8 }}>
+              <defs><linearGradient id="oa" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={BRAND} stopOpacity={0.2} /><stop offset="100%" stopColor={BRAND} stopOpacity={0} /></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v) => [`${v}%`, "Faol"]} />
+              <Area type="monotone" dataKey="faol" stroke={BRAND} strokeWidth={2.5} fill="url(#oa)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title="Progress taqsimoti">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={stats.buckets} margin={{ left: -20, right: 8, top: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip cursor={{ fill: "hsl(var(--secondary))" }} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v) => [`${v} o'quvchi`, ""]} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={54} fill={EMERALD} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title="Kurs bo'yicha bajarilishi">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={stats.byCourse} margin={{ left: -20, right: 8, top: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} unit="%" />
+              <Tooltip cursor={{ fill: "hsl(var(--secondary))" }} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v) => [`${v}%`, "o'rtacha"]} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={54}>
+                {stats.byCourse.map((c) => <Cell key={c.name} fill={LANG_HSL[c.name as Lang]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* inactivity alert */}
+      {inactive.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm mb-2.5">
+            <AlertTriangle className="h-4 w-4" /> Uzoq vaqt kirmagan o'quvchilar ({inactive.length})
           </div>
-          <button onClick={submitAdd} disabled={addLoading}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition disabled:opacity-50 inline-flex items-center gap-2">
-            {addLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Saqlanmoqda…</> : "Saqlash"}
-          </button>
-          {addResult && (
-            <span className={cn("ml-3 text-sm font-medium",
-              addResult.startsWith("✅") ? "text-emerald-600" : "text-red-500")}>
-              {addResult}
-            </span>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {inactive.map((s) => (
+              <button key={s.id} onClick={() => setSelectedId(s.id)}
+                className="inline-flex items-center gap-2 bg-card border border-amber-200 rounded-xl px-3 py-1.5 text-sm hover:border-amber-400 transition">
+                <span className="font-medium text-foreground">{s.name}</span>
+                <span className="text-xs text-red-500 font-semibold">{s.daysSince} kun</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Поиск */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input type="text" placeholder="Telefon raqami bo'yicha qidirish..." value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm" />
-      </div>
-
-      {/* Результат поиска */}
-      {search && (
-        <div className={cn("mb-4 px-4 py-3 rounded-xl border text-sm font-medium inline-flex items-center gap-2",
-          searchResult
-            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700"
-            : "bg-red-500/10 border-red-500/30 text-red-600")}>
-          {searchResult ? "✅ Bu raqam bazada mavjud" : "❌ Bu raqam bazada yo'q"}
-        </div>
-      )}
-
-      {/* Таблица */}
+      {/* access list */}
       <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h3 className="font-semibold">Ruxsat berilgan raqamlar</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{phones.length} ta raqam</p>
+        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-border">
+          <h3 className="font-semibold">O'quvchilar — dostup va natijalar</h3>
+          <div className="flex-1" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ism yoki telefon..."
+              className="h-9 w-56 pl-9 pr-3 rounded-lg bg-secondary text-sm focus:bg-card focus:outline-none border border-transparent focus:border-border transition" />
+          </div>
+          <FilterSelect value={course} onChange={(v) => setCourse(v as Lang | "all")}
+            options={[["all", "Barcha kurslar"], ...LANGS.map((l) => [l, l] as [string, string])]} />
+          <FilterSelect value={status} onChange={(v) => setStatus(v as typeof status)}
+            options={[["all", "Barcha statuslar"], ["faol", "Faol"], ["nofaol", "Nofaol"], ["bloklangan", "Bloklangan"]]} />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider bg-secondary/50 border-b border-border">
-                <th className="px-4 py-3 font-medium">№</th>
-                <th className="px-4 py-3 font-medium">Telefon</th>
-                <th className="px-4 py-3 font-medium">Berilgan sana</th>
-                <th className="px-4 py-3 font-medium">Oxirgi kirish</th>
-                <th className="px-4 py-3 font-medium">Device ID</th>
-                <th className="px-4 py-3 font-medium"></th>
+                <Th>O'quvchi</Th><Th>Kurs</Th><Th>Progress</Th><Th>Oxirgi kirish</Th><Th>Ball</Th><Th>Status</Th><Th>Ruxsat</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {displayed.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">Raqamlar topilmadi</td></tr>
-              ) : displayed.map((p, i) => (
-                <tr key={p.id} className="hover:bg-secondary/40 transition">
-                  <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
-                  <td className="px-4 py-3 font-medium">{p.telefon_raqami}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(p.created_at)}</td>
-                  <td className="px-4 py-3">
-                    {p.last_seen ? (
-                      <span className="text-emerald-600">{formatDate(p.last_seen)}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Hali kirmagan</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
-                    {p.device_id ? p.device_id.slice(0, 16) + "..." : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button
-                        onClick={() => { setEditPhone(p); setEditNewPhone(p.telefon_raqami); setEditResult(null); }}
-                        className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => submitDelete(p.id)}
-                        disabled={deleteLoading && deleteId === p.id}
-                        className="h-8 w-8 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-muted-foreground hover:text-red-500 transition">
-                        {deleteLoading && deleteId === p.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Trash2 className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {rows.map((s) => {
+                const st = statusOf(s);
+                return (
+                  <tr key={s.id} className="hover:bg-secondary/40 transition">
+                    <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedId(s.id)}>
+                      <div className="font-medium">{s.name}</div>
+                      <div className="text-xs text-muted-foreground num">{s.phone}</div>
+                    </td>
+                    <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedId(s.id)}>{s.course}</td>
+                    <td className="px-4 py-3 cursor-pointer min-w-[140px]" onClick={() => setSelectedId(s.id)}><ProgressBar pct={s.progressPct} /></td>
+                    <td className="px-4 py-3 cursor-pointer whitespace-nowrap" onClick={() => setSelectedId(s.id)}>
+                      {s.lastSeen ? <span className="num text-muted-foreground">{s.lastSeen}</span> : <span className="text-red-500">Hali kirmagan</span>}
+                    </td>
+                    <td className="px-4 py-3 cursor-pointer num font-semibold" onClick={() => setSelectedId(s.id)}>{s.avgScore || "—"}</td>
+                    <td className="px-4 py-3"><span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold", st.cls)}>{st.label}</span></td>
+                    <td className="px-4 py-3"><Switch checked={s.accessActive} onCheckedChange={(v) => toggleAccess(s.id, v)} /></td>
+                  </tr>
+                );
+              })}
+              {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Topilmadi</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Модалка редактирования */}
-      {editPhone && (
-        <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl border border-border w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h3 className="font-semibold">Raqamni tahrirlash</h3>
-              <button onClick={() => setEditPhone(null)}
-                className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Yangi telefon raqami</label>
-                <input type="tel" value={editNewPhone} onChange={e => setEditNewPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-              </div>
-              <div className="flex items-center gap-3">
-                <button onClick={submitEdit} disabled={editLoading}
-                  className="px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2">
-                  {editLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Saqlanmoqda…</> : "Saqlash"}
-                </button>
-                <button onClick={() => setEditPhone(null)}
-                  className="px-6 py-2 bg-secondary text-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition">
-                  Bekor
-                </button>
-              </div>
-              {editResult && (
-                <p className={cn("text-sm font-medium",
-                  editResult.startsWith("✅") ? "text-emerald-600" : "text-red-500")}>
-                  {editResult}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* student detail modal */}
+      {selected && <StudentModal student={selected} onClose={() => setSelectedId(null)} onToggle={(v) => toggleAccess(selected.id, v)} />}
     </div>
   );
 }
+
+function StudentModal({ student: s, onClose, onToggle }: { student: OnlineStudent; onClose: () => void; onToggle: (v: boolean) => void }) {
+  const st = statusOf(s);
+  return (
+    <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-card rounded-2xl border border-border shadow-elevated w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-lg truncate">{s.name}</h3>
+            <p className="text-xs text-muted-foreground num">{s.phone} · {s.course} · {s.level}</p>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold", st.cls)}>{st.label}</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Oxirgi kirish: {s.lastSeen ?? "Hali kirmagan"}</span>
+          </div>
+
+          {/* where they stopped */}
+          <div className="rounded-xl border border-border bg-secondary/40 p-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5"><PlayCircle className="h-4 w-4 text-brand" /> Hozir shu yerda to'xtagan</div>
+            <div className="font-semibold">{s.currentModule}</div>
+            <div className="text-sm text-muted-foreground">{s.currentLesson}</div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1.5">
+              <span className="text-muted-foreground">Umumiy progress</span>
+              <span className="num font-semibold">{s.progressPct}%</span>
+            </div>
+            <ProgressBar pct={s.progressPct} />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <MiniStat icon={<CheckCircle2 className="h-4 w-4" />} label="Darslar" value={`${s.lessonsDone}/${s.lessonsTotal}`} />
+            <MiniStat icon={<GraduationCap className="h-4 w-4" />} label="Testlar" value={`${s.testsPassed}/${s.testsTotal}`} />
+            <MiniStat icon={<Flame className="h-4 w-4" />} label="Ketma-ket" value={`${s.streakDays} kun`} />
+            <MiniStat icon={<Timer className="h-4 w-4" />} label="Ko'rildi" value={`${s.watchHours} soat`} />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold mb-2.5"><BookOpen className="h-4 w-4 text-brand" /> Modullar bo'yicha</div>
+            <div className="space-y-3">
+              {s.modules.map((m) => {
+                const pct = Math.round((m.lessonsDone / m.lessonsTotal) * 100);
+                return (
+                  <div key={m.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-medium">{m.name}</span>
+                      <span className="num text-muted-foreground">{m.lessonsDone}/{m.lessonsTotal}{m.avgScore ? ` · ${m.avgScore}%` : ""}</span>
+                    </div>
+                    <ProgressBar pct={pct} thin />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold mb-2.5">Faollik tarixi</div>
+            <ol className="relative border-l border-border ml-1.5 space-y-4">
+              {s.activity.map((a, i) => (
+                <li key={i} className="ml-5">
+                  <span className="absolute -left-[7px] mt-1 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-card" />
+                  <div className="text-sm">{a.text}</div>
+                  <div className="num text-xs text-muted-foreground mt-0.5">{a.at}</div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div>
+              <div className="text-sm font-medium">Platformaga ruxsat</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                Berilgan: {s.grantedAt}
+                {s.device && <span className="inline-flex items-center gap-1"><Smartphone className="h-3 w-3" />{s.device}</span>}
+              </div>
+            </div>
+            <Switch checked={s.accessActive} onCheckedChange={onToggle} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgressBar({ pct, thin }: { pct: number; thin?: boolean }) {
+  const cls = pct >= 75 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
+  return (
+    <div className={cn("w-full rounded-full bg-secondary overflow-hidden", thin ? "h-1.5" : "h-2")}>
+      <div className={cn("h-full rounded-full transition-all", cls)} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/40 p-3">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">{icon}{label}</div>
+      <div className="num font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function Kpi({ icon, label, value, danger }: { icon: React.ReactNode; label: string; value: string | number; danger?: boolean }) {
+  return (
+    <div className="bg-card rounded-2xl border border-border shadow-soft p-4">
+      <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", danger ? "bg-red-50 text-red-500" : "bg-brand-soft text-brand")}>{icon}</div>
+      <div className="num text-2xl font-bold mt-3">{value}</div>
+      <div className="text-[13px] text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-card rounded-2xl border border-border shadow-soft p-5">
+      <h3 className="text-sm font-semibold mb-4">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="h-9 px-3 text-sm rounded-lg bg-card border border-border text-foreground focus:outline-none focus:border-primary cursor-pointer">
+      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    </select>
+  );
+}
+
+const Th = ({ children }: { children: React.ReactNode }) => <th className="px-4 py-3 font-medium whitespace-nowrap">{children}</th>;
